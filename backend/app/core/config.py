@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg2://stockpilot_user:stockpilot_pass@localhost:5432/stockpilot_db"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    secret_key: str = "changeme_dev_secret"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
 
 
 settings = Settings()
