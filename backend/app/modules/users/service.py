@@ -18,9 +18,13 @@ class UserService:
                 detail="Email already registered",
             )
         user = User(
+            username=payload.username,
             email=payload.email,
+            mobile_no=payload.mobile_no,
+            address=payload.address,
             hashed_password=hash_password(payload.password),
             full_name=payload.full_name,
             role=payload.role,
         )
         return self.repo.create(user)
+    

@@ -6,6 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 import sys
 from pathlib import Path
+from app.modules.otp.models import Otp
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
