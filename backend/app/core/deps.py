@@ -7,6 +7,9 @@ from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
+from typing import Callable
+
+from app.modules.users.models import User, UserRole
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -38,3 +41,13 @@ def get_current_user(
             detail="User account is inactive",
         )
     return user
+def require_role(*allowed_roles: UserRole) -> Callable:
+    def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to perform this action",
+            )
+        return current_user
+
+    return role_checker
