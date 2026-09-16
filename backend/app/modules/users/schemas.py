@@ -27,3 +27,7 @@ class UserOut(BaseModel):
     is_verified: bool
 
     model_config = ConfigDict(from_attributes=True)
+    
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp_code: str

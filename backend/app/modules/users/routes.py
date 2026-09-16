@@ -8,6 +8,8 @@ from app.core.deps import get_current_user
 from app.modules.users.models import User
 from app.core.deps import require_role
 from app.modules.users.models import UserRole
+from app.modules.users.schemas import VerifyOtpRequest
+
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -27,3 +29,8 @@ def register_user(
 ):
     service = UserService(db)
     return service.register_user(payload)
+
+@router.post("/verify-otp", response_model=UserOut)
+def verify_registration_otp(payload: VerifyOtpRequest, db: Session = Depends(get_db)):
+    service = UserService(db)
+    return service.verify_registration_otp(payload.email, payload.otp_code)
