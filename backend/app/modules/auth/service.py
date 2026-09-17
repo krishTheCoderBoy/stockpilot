@@ -9,6 +9,11 @@ from app.modules.otp.service import OtpService
 from app.modules.otp.models import OtpPurpose
 from app.core.security import hash_password
 from app.core.email import send_email
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
+
+from app.core.config import settings
+from app.modules.users.models import User, UserRole
 
 
 OTP_VALIDITY_DAYS = 30
@@ -102,3 +107,33 @@ class AuthService:
             subject="Your StockPilot username",
             body=f"Your username is: {user.username}",
         )
+    def google_login(self, token: str) -> str:
+        try:
+            idinfo = google_id_token.verify_oauth2_token(
+                token, google_requests.Request(), settings.google_client_id
+            )
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token"
+            )
+
+        email = idinfo["email"]
+        full_name = idinfo.get("name", email)
+
+        user = self.repo.get_by_email(email)
+        if not user:
+            user = User(
+                username=email.split("@")[0],
+                email=email,
+                mobile_no=None,
+                hashed_password="",
+                full_name=full_name,
+                role=UserRole.INVENTORY_MANAGER,
+                is_verified=True,
+                is_active=True,
+            )
+            self.db.add(user)
+            self.db.commit()
+            self.db.refresh(user)
+
+        return create_access_token(subject=str(user.id), role=user.role.value)

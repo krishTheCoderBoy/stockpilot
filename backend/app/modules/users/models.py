@@ -28,3 +28,5 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
     otp_verified_at = Column(DateTime(timezone=True), nullable=True)
+    mobile_no = Column(String, unique=True, nullable=True, index=True)
+    hashed_password = Column(String, nullable=True)

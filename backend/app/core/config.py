@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from_email: str = "noreply@stockpilot.com"
     otp_expiry_minutes: int = 10
+    google_client_id: str = ""
 
 
 settings = Settings()

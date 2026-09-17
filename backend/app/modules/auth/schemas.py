@@ -36,3 +36,7 @@ class MessageResponse(BaseModel):
 
 class ForgotUsernameRequest(BaseModel):
     identifier: str  # email or mobile number
+
+
+class GoogleLoginRequest(BaseModel):
+    id_token: str

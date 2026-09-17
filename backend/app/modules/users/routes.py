@@ -22,6 +22,7 @@ from app.modules.auth.schemas import (
 )
 from app.modules.auth.service import AuthService
 from app.modules.auth.schemas import ForgotUsernameRequest
+from app.modules.auth.schemas import GoogleLoginRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -81,3 +82,12 @@ def forgot_username(payload: ForgotUsernameRequest, db: Session = Depends(get_db
     service = AuthService(db)
     service.forgot_username(payload.identifier)
     return MessageResponse(message="If that identifier is registered, your username has been emailed.")
+
+
+
+
+@router.post("/google", response_model=Token)
+def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
+    service = AuthService(db)
+    token = service.google_login(payload.id_token)
+    return Token(access_token=token)
