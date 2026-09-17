@@ -15,6 +15,11 @@ from app.modules.auth.schemas import (
     Token,
     VerifyLoginOtpRequest,
 )
+from app.modules.auth.schemas import (
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    MessageResponse,
+)
 from app.modules.auth.service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -55,3 +60,15 @@ def verify_login_otp(payload: VerifyLoginOtpRequest, db: Session = Depends(get_d
     service = AuthService(db)
     token = service.verify_login_otp(payload.email, payload.otp_code)
     return Token(access_token=token)
+@router.post("/forgot-password", response_model=MessageResponse)
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    service = AuthService(db)
+    service.forgot_password(payload.email)
+    return MessageResponse(message="If that email is registered, an OTP has been sent.")
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    service = AuthService(db)
+    service.reset_password(payload.email, payload.otp_code, payload.new_password)
+    return MessageResponse(message="Password reset successful.")

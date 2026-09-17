@@ -21,3 +21,15 @@ class LoginResponse(BaseModel):
 class VerifyLoginOtpRequest(BaseModel):
     email: str
     otp_code: str
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    otp_code: str
+    new_password: str
+
+
+class MessageResponse(BaseModel):
+    message: str

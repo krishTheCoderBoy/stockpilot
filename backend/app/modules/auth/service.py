@@ -7,6 +7,8 @@ from app.core.security import verify_password, create_access_token
 from app.modules.users.repository import UserRepository
 from app.modules.otp.service import OtpService
 from app.modules.otp.models import OtpPurpose
+from app.core.security import hash_password
+
 
 OTP_VALIDITY_DAYS = 30
 
@@ -64,3 +66,28 @@ class AuthService:
         self.db.commit()
 
         return create_access_token(subject=str(user.id), role=user.role.value)
+    
+    def forgot_password(self, email: str) -> None:
+        user = self.repo.get_by_email(email)
+        if not user:
+            # Do not reveal whether the email exists
+            return
+        otp_service = OtpService(self.db)
+        otp_service.generate_and_send(user.id, user.email, OtpPurpose.PASSWORD_RESET)
+
+    def reset_password(self, email: str, otp_code: str, new_password: str) -> None:
+        user = self.repo.get_by_email(email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request"
+            )
+
+        otp_service = OtpService(self.db)
+        is_valid = otp_service.verify(user.id, OtpPurpose.PASSWORD_RESET, otp_code)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP"
+            )
+
+        user.hashed_password = hash_password(new_password)
+        self.db.commit()
