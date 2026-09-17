@@ -28,8 +28,7 @@ class InventoryRepository:
 
     def create(self, inventory: Inventory) -> Inventory:
         self.db.add(inventory)
-        self.db.commit()
-        self.db.refresh(inventory)
+        self.db.flush()
         return inventory
 
     def get_or_create(self, product_id, warehouse_id) -> Inventory:

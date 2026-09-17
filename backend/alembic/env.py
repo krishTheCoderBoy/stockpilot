@@ -12,6 +12,7 @@ from app.modules.products.categories_models import ProductCategory
 from app.modules.products.models import Product
 from app.modules.warehouses.models import Warehouse
 from app.modules.inventory.models import Inventory
+from app.modules.inventory_movements.models import InventoryMovement
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
