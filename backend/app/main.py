@@ -8,11 +8,13 @@ from app.modules.products.categories_routes import router as categories_router
 from app.modules.warehouses.routes import router as warehouses_router
 from app.modules.inventory.routes import router as inventory_router
 from app.modules.inventory_movements.routes import router as movements_router
+from app.modules.suppliers.routes import router as suppliers_router
 
 
 app = FastAPI(title=settings.app_name)
 app.include_router(users_router)
 app.include_router(categories_router)
+app.include_router(suppliers_router)
 app.include_router(inventory_router)
 app.include_router(auth_router)
 app.include_router(products_router)
