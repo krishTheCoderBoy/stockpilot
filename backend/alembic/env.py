@@ -10,6 +10,7 @@ from app.modules.otp.models import Otp
 from app.modules.products.models import Product
 from app.modules.products.categories_models import ProductCategory
 from app.modules.products.models import Product
+from app.modules.warehouses.models import Warehouse
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
