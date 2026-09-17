@@ -21,6 +21,7 @@ from app.modules.auth.schemas import (
     MessageResponse,
 )
 from app.modules.auth.service import AuthService
+from app.modules.auth.schemas import ForgotUsernameRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -72,3 +73,11 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     service = AuthService(db)
     service.reset_password(payload.email, payload.otp_code, payload.new_password)
     return MessageResponse(message="Password reset successful.")
+
+
+
+@router.post("/forgot-username", response_model=MessageResponse)
+def forgot_username(payload: ForgotUsernameRequest, db: Session = Depends(get_db)):
+    service = AuthService(db)
+    service.forgot_username(payload.identifier)
+    return MessageResponse(message="If that identifier is registered, your username has been emailed.")

@@ -33,3 +33,6 @@ class ResetPasswordRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+class ForgotUsernameRequest(BaseModel):
+    identifier: str  # email or mobile number
