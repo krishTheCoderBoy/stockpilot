@@ -22,3 +22,6 @@ class Product(Base):
     min_order_quantity = Column(Numeric(12, 2), nullable=False, default=1)
     max_stock_level = Column(Numeric(12, 2), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    default_supplier_id = Column(
+        UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=True
+    )
