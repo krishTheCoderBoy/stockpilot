@@ -7,6 +7,10 @@ from fastapi import HTTPException, status
 from app.modules.purchase_orders.models import PurchaseOrder, PurchaseOrderItem, POStatus
 from app.modules.purchase_orders.repository import PurchaseOrderRepository
 from app.modules.purchase_orders.schemas import PurchaseOrderCreate
+from decimal import Decimal
+
+from app.modules.inventory_movements.service import MovementService
+from app.modules.purchase_orders.schemas import ReceiveRequest
 
 # Explicit allowed transitions — the state machine, as data, not scattered if/else
 ALLOWED_TRANSITIONS = {
@@ -86,3 +90,60 @@ class PurchaseOrderService:
         po = self.get_po(po_id)
         self._transition(po, POStatus.CLOSED)
         return self.repo.save(po)
+    
+    def receive(self, po_id, payload: ReceiveRequest, performed_by) -> PurchaseOrder:
+        po = self.get_po(po_id)
+
+        if po.status not in {POStatus.ORDERED, POStatus.PARTIALLY_RECEIVED}:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot receive against a PO in status {po.status.value}",
+            )
+
+        items_by_id = {item.id: item for item in po.items}
+        movement_service = MovementService(self.db)
+
+        try:
+            for entry in payload.items:
+                po_item = items_by_id.get(entry.po_item_id)
+                if not po_item:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"PO item {entry.po_item_id} does not belong to this purchase order",
+                    )
+                if entry.quantity <= 0:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Received quantity must be positive",
+                    )
+                remaining = po_item.ordered_quantity - po_item.received_quantity
+                if entry.quantity > remaining:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Cannot receive {entry.quantity}; only {remaining} remaining on this item",
+                    )
+
+                po_item.received_quantity += entry.quantity
+
+                movement_service.record_receive(
+                    product_id=po_item.product_id,
+                    warehouse_id=po.warehouse_id,
+                    quantity=entry.quantity,
+                    unit_cost=po_item.unit_price,
+                    reference_id=po.id,
+                    performed_by=performed_by,
+                    notes=f"Receipt against {po.po_number}",
+                )
+
+            fully_received = all(
+                item.received_quantity >= item.ordered_quantity for item in po.items
+            )
+            new_status = POStatus.RECEIVED if fully_received else POStatus.PARTIALLY_RECEIVED
+            self._transition(po, new_status)
+
+            self.db.commit()
+            self.db.refresh(po)
+            return po
+        except Exception:
+            self.db.rollback()
+            raise

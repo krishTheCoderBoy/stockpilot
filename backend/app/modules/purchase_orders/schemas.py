@@ -43,4 +43,13 @@ class PurchaseOrderOut(BaseModel):
     updated_at: datetime
     items: list[POItemOut]
 
+    
+class ReceiveItemRequest(BaseModel):
+    po_item_id: uuid.UUID
+    quantity: Decimal
+
+
+class ReceiveRequest(BaseModel):
+    items: list[ReceiveItemRequest] = Field(min_length=1)
+
     model_config = ConfigDict(from_attributes=True)
