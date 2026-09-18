@@ -27,6 +27,7 @@ class ProductCreate(BaseModel):
     reorder_point: Decimal = Decimal("0")
     min_order_quantity: Decimal = Decimal("1")
     max_stock_level: Decimal | None = None
+    default_supplier_id: uuid.UUID | None = None
 
 
 class ProductUpdate(BaseModel):
@@ -39,6 +40,7 @@ class ProductUpdate(BaseModel):
     min_order_quantity: Decimal | None = None
     max_stock_level: Decimal | None = None
     is_active: bool | None = None
+    default_supplier_id: uuid.UUID | None = None
 
 
 class ProductOut(BaseModel):
@@ -53,5 +55,6 @@ class ProductOut(BaseModel):
     min_order_quantity: Decimal
     max_stock_level: Decimal | None
     is_active: bool
-
+    default_supplier_id: uuid.UUID | None
+    
     model_config = ConfigDict(from_attributes=True)
