@@ -9,11 +9,13 @@ from app.modules.warehouses.routes import router as warehouses_router
 from app.modules.inventory.routes import router as inventory_router
 from app.modules.inventory_movements.routes import router as movements_router
 from app.modules.suppliers.routes import router as suppliers_router
+from app.modules.purchase_orders.routes import router as po_router
 
 
 app = FastAPI(title=settings.app_name)
 app.include_router(users_router)
 app.include_router(categories_router)
+app.include_router(po_router)
 app.include_router(suppliers_router)
 app.include_router(inventory_router)
 app.include_router(auth_router)
