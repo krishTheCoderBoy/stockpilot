@@ -8,6 +8,7 @@ from app.core.deps import require_role
 from app.modules.users.models import User, UserRole
 from app.modules.purchase_orders.schemas import PurchaseOrderCreate, PurchaseOrderOut
 from app.modules.purchase_orders.service import PurchaseOrderService
+from app.modules.purchase_orders.schemas import ReceiveRequest
 
 router = APIRouter(prefix="/purchase-orders", tags=["purchase-orders"])
 
@@ -85,3 +86,13 @@ def close_po(
 ):
     service = PurchaseOrderService(db)
     return service.close(po_id)
+
+@router.post("/{po_id}/receive", response_model=PurchaseOrderOut)
+def receive_po(
+    po_id: uuid.UUID,
+    payload: ReceiveRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(*WRITE_ROLES)),
+):
+    service = PurchaseOrderService(db)
+    return service.receive(po_id, payload, performed_by=current_user.id)

@@ -139,3 +139,16 @@ class MovementService:
 
     def list_all(self, skip: int = 0, limit: int = 100):
         return self.movement_repo.list_all(skip, limit)
+    
+    def record_receive(self, product_id, warehouse_id, quantity, unit_cost, reference_id, performed_by, notes=None):
+        return self._apply_single_movement(
+            product_id=product_id,
+            warehouse_id=warehouse_id,
+            movement_type=MovementType.RECEIVE,
+            quantity=quantity,
+            unit_cost=unit_cost,
+            reference_type=ReferenceType.PURCHASE_ORDER,
+            reference_id=reference_id,
+            performed_by=performed_by,
+            notes=notes,
+        )
