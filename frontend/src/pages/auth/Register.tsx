@@ -5,6 +5,7 @@ import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
 import { api, extractErrorMessage } from "../../lib/api";
+import { AppShell } from "../../components/shell/AppShell";
 
 export function Register() {
   const [form, setForm] = useState({
@@ -28,9 +29,9 @@ export function Register() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    try {
+        try {
       await api.post("/users/", form);
-      navigate("/verify-otp", { state: { email: form.email } });
+      navigate("/settings/users");
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -39,7 +40,7 @@ export function Register() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink px-4 py-8">
+    <AppShell breadcrumb="Settings / Add User">
       <Card className="w-full max-w-md">
         <h1 className="mb-1 font-mono text-lg text-accent">Create account</h1>
         <p className="mb-6 text-sm text-text-muted">Register a new StockPilot user</p>
@@ -62,6 +63,6 @@ export function Register() {
           </Button>
         </form>
       </Card>
-    </div>
+    </AppShell>
   );
 }

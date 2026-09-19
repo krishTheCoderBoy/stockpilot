@@ -3,6 +3,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AppShell } from "./components/shell/AppShell";
 import { Login } from "./pages/auth/Login";
+import { AdminRoute } from "./components/AdminRoute";
 import { Register } from "./pages/auth/Register";
 import { VerifyRegistrationOtp } from "./pages/auth/VerifyRegistrationOtp";
 import { VerifyLoginOtp } from "./pages/auth/VerifyLoginOtp";
@@ -23,7 +24,14 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route
+  path="/settings/users/new"
+  element={
+    <AdminRoute>
+      <Register />
+    </AdminRoute>
+  }
+/>
           <Route path="/verify-otp" element={<VerifyRegistrationOtp />} />
           <Route path="/verify-login-otp" element={<VerifyLoginOtp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
