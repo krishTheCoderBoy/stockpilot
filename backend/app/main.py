@@ -10,6 +10,8 @@ from app.modules.inventory.routes import router as inventory_router
 from app.modules.inventory_movements.routes import router as movements_router
 from app.modules.suppliers.routes import router as suppliers_router
 from app.modules.purchase_orders.routes import router as po_router
+from fastapi.middleware.cors import CORSMiddleware
+
 
 
 app = FastAPI(title=settings.app_name)
@@ -23,6 +25,14 @@ app.include_router(products_router)
 app.include_router(warehouses_router)
 app.include_router(movements_router)
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health_check():
