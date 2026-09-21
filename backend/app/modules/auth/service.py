@@ -135,5 +135,12 @@ class AuthService:
             self.db.add(user)
             self.db.commit()
             self.db.refresh(user)
+            
+    def resend_login_otp(self, email: str) -> None:
+        user = self.repo.get_by_email(email)
+        if not user:
+            return
+        otp_service = OtpService(self.db)
+        otp_service.generate_and_send(user.id, user.email, OtpPurpose.LOGIN)
 
         return create_access_token(subject=str(user.id), role=user.role.value)

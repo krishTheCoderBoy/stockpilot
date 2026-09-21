@@ -15,6 +15,19 @@ export function VerifyLoginOtp() {
   const [otpCode, setOtpCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+
+  async function handleResend() {
+    setResending(true);
+    setResendMessage(null);
+    try {
+      await api.post("/auth/resend-login-otp", { email });
+      setResendMessage("A new code has been sent.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,6 +70,17 @@ export function VerifyLoginOtp() {
             {loading ? "Verifying..." : "Verify and sign in"}
           </Button>
         </form>
+
+        {resendMessage && (
+          <p className="mt-3 text-center text-xs text-flow">{resendMessage}</p>
+        )}
+        <button
+          onClick={handleResend}
+          disabled={resending}
+          className="mt-3 w-full text-center text-xs text-accent hover:underline disabled:opacity-50"
+        >
+          {resending ? "Sending..." : "Resend code"}
+        </button>
       </Card>
     </div>
   );
