@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
 import { api, extractErrorMessage } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import loginHero from "../../assets/login-hero-2.png";
 
 export function Login() {
   const [email, setEmail] = useState("");
@@ -36,7 +37,14 @@ export function Login() {
 
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-      <div className="hidden flex-col justify-between bg-surface p-12 lg:flex">
+      <div
+        className="relative hidden h-screen flex-col justify-between overflow-hidden p-12 lg:flex"
+        style={{
+          backgroundImage: `linear-gradient(to bottom, rgba(10,13,18,0.55), rgba(10,13,18,0.9)), url(${loginHero})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
         <span className="font-mono text-lg text-accent">StockPilot</span>
         <div>
           <Package size={28} className="text-accent" />
@@ -50,7 +58,7 @@ export function Login() {
         <p className="text-xs text-text-muted">© {new Date().getFullYear()} StockPilot</p>
       </div>
 
-      <div className="flex items-center justify-center px-6 py-12">
+      <div className="flex h-screen items-center justify-center overflow-y-auto px-6 py-12">
         <div className="w-full max-w-sm">
           <h1 className="mb-1 text-xl font-medium text-text">Sign in</h1>
           <p className="mb-6 text-sm text-text-muted">Welcome back — enter your details to continue</p>
