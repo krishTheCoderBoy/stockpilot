@@ -11,6 +11,7 @@ from app.modules.inventory_movements.routes import router as movements_router
 from app.modules.suppliers.routes import router as suppliers_router
 from app.modules.purchase_orders.routes import router as po_router
 from fastapi.middleware.cors import CORSMiddleware
+from app.modules.dashboard.routes import router as dashboard_router
 
 
 
@@ -24,6 +25,7 @@ app.include_router(auth_router)
 app.include_router(products_router)
 app.include_router(warehouses_router)
 app.include_router(movements_router)
+app.include_router(dashboard_router)
 
 
 app.add_middleware(
