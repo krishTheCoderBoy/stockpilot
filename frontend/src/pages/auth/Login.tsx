@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Card } from "../../components/ui/Card";
+import { Package, ArrowRight } from "lucide-react";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
@@ -25,7 +25,7 @@ export function Login() {
         navigate("/verify-login-otp", { state: { email } });
       } else {
         login(res.data.access_token);
-        navigate("/");
+        navigate("/dashboard");
       }
     } catch (err) {
       setError(extractErrorMessage(err));
@@ -35,49 +35,53 @@ export function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink px-4">
-      <Card className="w-full max-w-sm">
-        <h1 className="mb-1 font-mono text-lg text-accent">StockPilot</h1>
-        <p className="mb-6 text-sm text-text-muted">Sign in to continue</p>
+    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
+      <div className="hidden flex-col justify-between bg-surface p-12 lg:flex">
+        <span className="font-mono text-lg text-accent">StockPilot</span>
+        <div>
+          <Package size={28} className="text-accent" />
+          <h2 className="mt-4 max-w-sm text-2xl font-medium text-text">
+            Every unit accounted for, every movement on record.
+          </h2>
+          <p className="mt-3 max-w-sm text-sm text-text-muted">
+            Sign in to manage products, warehouses, and purchase orders across your operation.
+          </p>
+        </div>
+        <p className="text-xs text-text-muted">© {new Date().getFullYear()} StockPilot</p>
+      </div>
 
-        {error && (
-          <div className="mb-4">
-            <Alert tone="danger">{error}</Alert>
-          </div>
-        )}
+      <div className="flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-sm">
+          <h1 className="mb-1 text-xl font-medium text-text">Sign in</h1>
+          <p className="mb-6 text-sm text-text-muted">Welcome back — enter your details to continue</p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <Input
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <div className="flex justify-end">
-            <Link to="/forgot-password" className="text-xs text-accent hover:underline">
-              Forgot password?
+          {error && (
+            <div className="mb-4">
+              <Alert tone="danger">{error}</Alert>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-xs text-accent hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+            <Button type="submit" disabled={loading} className="justify-center">
+              {loading ? "Signing in..." : <>Sign in <ArrowRight size={16} /></>}
+            </Button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-text-muted">
+            Forgot your username?{" "}
+            <Link to="/forgot-username" className="text-accent hover:underline">
+              Recover it
             </Link>
-          </div>
-          <Button type="submit" disabled={loading}>
-            {loading ? "Signing in..." : "Sign in"}
-          </Button>
-        </form>
-
-        <p className="mt-4 text-center text-sm text-text-muted">
-          Forgot your username?{" "}
-          <Link to="/forgot-username" className="text-accent hover:underline">
-            Recover it
-          </Link>
-        </p>
-      </Card>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

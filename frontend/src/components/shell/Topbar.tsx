@@ -1,12 +1,32 @@
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, Sun, Moon } from "lucide-react";
 import { Dropdown } from "../ui/Dropdown";
+import { useTheme } from "../../context/ThemeContext";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface TopbarProps {
   breadcrumb: string;
   onOpenCommandPalette: () => void;
 }
 
+const ROLE_LABEL: Record<string, string> = {
+  ADMIN: "Admin",
+  INVENTORY_MANAGER: "Inventory Manager",
+  PROCUREMENT_MANAGER: "Procurement Manager",
+};
+
 export function Topbar({ breadcrumb }: TopbarProps) {
+  const { theme, toggleTheme } = useTheme();
+  const { role, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const initials = role ? role.slice(0, 2) : "?";
+
+  function handleLogout() {
+    logout();
+    navigate("/login");
+  }
+
   return (
     <header className="flex h-14 items-center justify-between border-b border-border px-6">
       <p className="text-sm text-text-muted">{breadcrumb}</p>
@@ -21,6 +41,10 @@ export function Topbar({ breadcrumb }: TopbarProps) {
           <kbd className="font-mono text-[10px] text-text-muted/70">⌘K</kbd>
         </button>
 
+        <button onClick={toggleTheme} aria-label="Toggle theme" className="text-text-muted hover:text-text transition-colors">
+          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+
         <button aria-label="Notifications" className="relative text-text-muted hover:text-text transition-colors">
           <Bell size={18} />
           <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-accent" />
@@ -28,13 +52,19 @@ export function Topbar({ breadcrumb }: TopbarProps) {
 
         <Dropdown
           trigger={
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-xs font-medium text-accent">
-              KD
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-xs font-medium text-accent">
+                {initials}
+              </span>
+              <span className="hidden text-xs text-text-muted sm:block">
+                {role ? ROLE_LABEL[role] : ""}
+              </span>
+            </div>
           }
           items={[
-            { label: "Profile", onClick: () => {} },
-            { label: "Sign out", onClick: () => {}, danger: true },
+            { label: "Profile", onClick: () => navigate("/profile") },
+            { label: "Settings", onClick: () => navigate("/settings") },
+            { label: "Sign out", onClick: handleLogout, danger: true },
           ]}
         />
       </div>
