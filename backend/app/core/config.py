@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import model_validator
 
 
 class Settings(BaseSettings):
@@ -19,6 +20,10 @@ class Settings(BaseSettings):
     smtp_from_email: str = "noreply@stockpilot.com"
     otp_expiry_minutes: int = 10
     google_client_id: str = ""
-
+    @model_validator(mode="after")
+    def check_secret_key(self):
+        if self.environment == "production" and self.secret_key == "changeme_dev_secret":
+            raise ValueError("SECRET_KEY must be set to a real value in production")
+        return self
 
 settings = Settings()

@@ -21,7 +21,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { Landing } from "./pages/Landing";
 import { Profile } from "./pages/profile/Profile";
 import { Settings } from "./pages/settings/Settings";
-
+import { ForgotUsername } from "./pages/auth/ForgotUsername";
 
 
 const queryClient = new QueryClient();
@@ -52,7 +52,7 @@ export default function App() {
               <Route path="/verify-login-otp" element={<VerifyLoginOtp />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-
+              <Route path="/forgot-username" element={<ForgotUsername />} />
               <Route
                 path="/dashboard"
                 element={

@@ -25,3 +25,7 @@ class RecentMovementOut(BaseModel):
     quantity: Decimal
     warehouse_name: str
     created_at: datetime
+
+class NotificationOut(BaseModel):
+    type: str
+    message: str

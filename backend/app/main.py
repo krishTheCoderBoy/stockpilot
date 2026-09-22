@@ -12,10 +12,20 @@ from app.modules.suppliers.routes import router as suppliers_router
 from app.modules.purchase_orders.routes import router as po_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.modules.dashboard.routes import router as dashboard_router
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+from app.core.limiter import limiter
+from app.core.security_headers import SecurityHeadersMiddleware
 
 
-
-app = FastAPI(title=settings.app_name)
+app = FastAPI(
+    title=settings.app_name,
+    docs_url="/docs" if settings.environment != "production" else None,
+    redoc_url="/redoc" if settings.environment != "production" else None,
+    openapi_url="/openapi.json" if settings.environment != "production" else None,
+)
 app.include_router(users_router)
 app.include_router(categories_router)
 app.include_router(po_router)
@@ -28,12 +38,18 @@ app.include_router(movements_router)
 app.include_router(dashboard_router)
 
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173","http://localhost:5174/"],
+    allow_origins=["http://localhost:5173"],  # replace with your real deployed frontend URL later
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 @app.get("/health")

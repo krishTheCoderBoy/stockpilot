@@ -47,17 +47,17 @@ export function SupplierForm({ onSuccess }: { onSuccess: () => void }) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && <Alert tone="danger">{error}</Alert>}
 
-      <Input label="Code" value={form.code} onChange={(e) => update("code", e.target.value)} required />
-      <Input label="Name" value={form.name} onChange={(e) => update("name", e.target.value)} required />
-      <Input label="Contact person" value={form.contact_person} onChange={(e) => update("contact_person", e.target.value)} />
+      <Input id="code" label="Code" value={form.code} onChange={(e) => update("code", e.target.value)} required />
+      <Input id="name" label="Name" value={form.name} onChange={(e) => update("name", e.target.value)} required />
+      <Input id="contact-person" label="Contact person" value={form.contact_person} onChange={(e) => update("contact_person", e.target.value)} />
 
       <div className="grid grid-cols-2 gap-3">
-        <Input label="Email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} />
-        <Input label="Phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} />
+        <Input id="email" label="Email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} />
+        <Input id="phone" label="Phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} />
       </div>
 
-      <Input label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} />
-      <Input label="Lead time (days)" type="number" value={form.lead_time_days} onChange={(e) => update("lead_time_days", e.target.value)} />
+      <Input id="address" label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} />
+      <Input id="lead-time-days" label="Lead time (days)" type="number" value={form.lead_time_days} onChange={(e) => update("lead_time_days", e.target.value)} />
 
       <Button type="submit" disabled={loading}>
         {loading ? "Saving..." : "Save supplier"}

@@ -43,9 +43,9 @@ export function ResetPassword() {
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <Input label="OTP code" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} maxLength={6} required />
-          <Input label="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+          <Input id="email" label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Input id="otp-code" label="OTP code" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} maxLength={6} required />
+          <Input id="new-password" label="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
           <Button type="submit" disabled={loading}>
             {loading ? "Resetting..." : "Reset password"}
           </Button>
