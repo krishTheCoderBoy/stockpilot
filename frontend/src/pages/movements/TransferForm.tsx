@@ -103,9 +103,11 @@ export function TransferForm({ products, warehouses, onSuccess }: Props) {
         </div>
       </div>
 
-      <Input label="Quantity" type="number" step="0.01" value={form.quantity} onChange={(e) => update("quantity", e.target.value)} required />
-      <Input label="Notes" value={form.notes} onChange={(e) => update("notes", e.target.value)} />
+      <Input id="quantity" label="Quantity" type="number" step="0.01" value={form.quantity} onChange={(e) => update("quantity", e.target.value)} required />
+      <Input id="notes" label="Notes" value={form.notes} onChange={(e) => update("notes", e.target.value)} />
 
+
+      
       <Button type="submit" disabled={loading}>
         {loading ? "Transferring..." : "Transfer stock"}
       </Button>

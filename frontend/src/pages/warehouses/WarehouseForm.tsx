@@ -44,15 +44,15 @@ export function WarehouseForm({ onSuccess }: { onSuccess: () => void }) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && <Alert tone="danger">{error}</Alert>}
 
-      <Input label="Code" value={form.code} onChange={(e) => update("code", e.target.value)} required />
-      <Input label="Name" value={form.name} onChange={(e) => update("name", e.target.value)} required />
+      <Input id="code" label="Code" value={form.code} onChange={(e) => update("code", e.target.value)} required />
+      <Input id="name" label="Name" value={form.name} onChange={(e) => update("name", e.target.value)} required />
 
       <div className="grid grid-cols-2 gap-3">
-        <Input label="City" value={form.city} onChange={(e) => update("city", e.target.value)} required />
-        <Input label="State" value={form.state} onChange={(e) => update("state", e.target.value)} required />
+        <Input id="city" label="City" value={form.city} onChange={(e) => update("city", e.target.value)} required />
+        <Input id="state" label="State" value={form.state} onChange={(e) => update("state", e.target.value)} required />
       </div>
 
-      <Input label="Country" value={form.country} onChange={(e) => update("country", e.target.value)} required />
+      <Input id="country" label="Country" value={form.country} onChange={(e) => update("country", e.target.value)} required />
 
       <div className="flex flex-col gap-1.5">
         <label className="text-sm text-text-muted">Warehouse type</label>
@@ -67,7 +67,7 @@ export function WarehouseForm({ onSuccess }: { onSuccess: () => void }) {
         </select>
       </div>
 
-      <Input label="Capacity" type="number" value={form.capacity} onChange={(e) => update("capacity", e.target.value)} />
+      <Input id="capacity" label="Capacity" type="number" value={form.capacity} onChange={(e) => update("capacity", e.target.value)} />
 
       <Button type="submit" disabled={loading}>
         {loading ? "Saving..." : "Save warehouse"}

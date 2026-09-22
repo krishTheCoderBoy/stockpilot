@@ -52,12 +52,12 @@ export function Register() {
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input label="Full name" value={form.full_name} onChange={(e) => update("full_name", e.target.value)} required />
-          <Input label="Username" value={form.username} onChange={(e) => update("username", e.target.value)} required />
-          <Input label="Email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} required />
-          <Input label="Mobile number" value={form.mobile_no} onChange={(e) => update("mobile_no", e.target.value)} required />
-          <Input label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} />
-          <Input label="Password" type="password" value={form.password} onChange={(e) => update("password", e.target.value)} required />
+          <Input id="full-name" label="Full name" value={form.full_name} onChange={(e) => update("full_name", e.target.value)} required />
+          <Input id="username" label="Username" value={form.username} onChange={(e) => update("username", e.target.value)} required />
+          <Input id="email" label="Email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} required />
+          <Input id="mobile-no" label="Mobile number" value={form.mobile_no} onChange={(e) => update("mobile_no", e.target.value)} required />
+          <Input id="address" label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} />
+          <Input id="password" label="Password" type="password" value={form.password} onChange={(e) => update("password", e.target.value)} required />
           <Button type="submit" disabled={loading}>
             {loading ? "Creating account..." : "Create account"}
           </Button>

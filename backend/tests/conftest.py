@@ -10,6 +10,7 @@ from app.core.database import Base, get_db
 from app.core.config import settings
 from app.core.security import hash_password
 from app.modules.users.models import User, UserRole
+from app.core.limiter import limiter
 
 test_engine = create_engine(settings.test_database_url)
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
@@ -85,3 +86,8 @@ def auth_headers(client, make_user):
         return {"Authorization": f"Bearer {token}"}, user
 
     return _auth_headers
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    limiter.reset()
+    yield

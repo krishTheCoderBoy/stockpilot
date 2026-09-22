@@ -6,6 +6,7 @@ from app.core.deps import require_role
 from app.modules.users.models import UserRole
 from app.modules.dashboard.schemas import DashboardSummary, TrendPoint, RecentMovementOut
 from app.modules.dashboard.service import DashboardService
+from app.modules.dashboard.schemas import NotificationOut
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -36,3 +37,9 @@ def get_recent_movements(
 ):
     service = DashboardService(db)
     return service.get_recent_movements(limit)
+
+
+@router.get("/notifications", response_model=list[NotificationOut])
+def get_notifications(db: Session = Depends(get_db), current_user=Depends(require_role(*READ_ROLES))):
+    service = DashboardService(db)
+    return service.get_notifications()

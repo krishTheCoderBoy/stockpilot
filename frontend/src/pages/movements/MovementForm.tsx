@@ -97,13 +97,13 @@ export function MovementForm({ products, warehouses, onSuccess }: Props) {
         </select>
       </div>
 
-      <Input label="Quantity" type="number" step="0.01" value={form.quantity} onChange={(e) => update("quantity", e.target.value)} required />
+      <Input id="quantity" label="Quantity" type="number" step="0.01" value={form.quantity} onChange={(e) => update("quantity", e.target.value)} required />
 
       {form.movement_type === "RECEIVE" && (
-        <Input label="Unit cost" type="number" step="0.01" value={form.unit_cost} onChange={(e) => update("unit_cost", e.target.value)} />
+        <Input id="unit-cost" label="Unit cost" type="number" step="0.01" value={form.unit_cost} onChange={(e) => update("unit_cost", e.target.value)} />
       )}
 
-      <Input label="Notes" value={form.notes} onChange={(e) => update("notes", e.target.value)} />
+      <Input id="notes" label="Notes" value={form.notes} onChange={(e) => update("notes", e.target.value)} />
 
       <Button type="submit" disabled={loading}>
         {loading ? "Recording..." : "Record movement"}

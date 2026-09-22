@@ -80,13 +80,10 @@ export function POList() {
             { header: "Items", accessor: (po) => <span className="font-mono">{po.items.length}</span> },
             { header: "Status", accessor: (po) => <Badge tone={STATUS_TONE[po.status]}>{po.status}</Badge> },
             {
-              header: "",
+              header: "PO Number",
               accessor: (po) => (
-                <button
-                  onClick={() => navigate(`/purchase-orders/${po.id}`)}
-                  className="text-xs text-accent hover:underline"
-                >
-                  View
+                <button onClick={() => navigate(`/purchase-orders/${po.id}`)} className="font-mono text-accent hover:underline">
+                  {po.po_number}
                 </button>
               ),
             },

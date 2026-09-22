@@ -93,3 +93,33 @@ class DashboardService:
             }
             for movement, product_name, warehouse_name in rows
         ]
+
+    def get_notifications(self) -> list[dict]:
+        notifications = []
+
+        low_stock = (
+            self.db.query(Product.name, Inventory.on_hand_quantity, Product.reorder_point)
+            .join(Inventory, Inventory.product_id == Product.id)
+            .filter(Inventory.on_hand_quantity <= Product.reorder_point)
+            .limit(10)
+            .all()
+        )
+        for name, on_hand, reorder_point in low_stock:
+            notifications.append({
+                "type": "LOW_STOCK",
+                "message": f"{name} is low on stock ({on_hand} left, reorder at {reorder_point})",
+            })
+
+        pending_pos = (
+            self.db.query(func.count(PurchaseOrder.id))
+            .filter(PurchaseOrder.status == POStatus.SUBMITTED)
+            .scalar()
+            or 0
+        )
+        if pending_pos > 0:
+            notifications.append({
+                "type": "PO_PENDING_APPROVAL",
+                "message": f"{pending_pos} purchase order(s) awaiting approval",
+            })
+
+        return notifications
