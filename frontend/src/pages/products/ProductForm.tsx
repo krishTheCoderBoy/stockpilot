@@ -55,9 +55,9 @@ export function ProductForm({ onSuccess }: { onSuccess: () => void }) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && <Alert tone="danger">{error}</Alert>}
 
-      <Input label="SKU" value={form.sku} onChange={(e) => update("sku", e.target.value)} required />
-      <Input label="Name" value={form.name} onChange={(e) => update("name", e.target.value)} required />
-      <Input label="Description" value={form.description} onChange={(e) => update("description", e.target.value)} />
+     <Input id="sku" label="SKU" value={form.sku} onChange={(e) => update("sku", e.target.value)} required />
+      <Input id="name" label="Name" value={form.name} onChange={(e) => update("name", e.target.value)} required />
+      <Input id="description" label="Description" value={form.description} onChange={(e) => update("description", e.target.value)} />
 
       <div className="flex flex-col gap-1.5">
         <label className="text-sm text-text-muted">Category</label>
@@ -74,16 +74,16 @@ export function ProductForm({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Input label="Unit price" type="number" step="0.01" value={form.unit_price} onChange={(e) => update("unit_price", e.target.value)} required />
-        <Input label="Unit of measure" value={form.unit_of_measure} onChange={(e) => update("unit_of_measure", e.target.value)} />
+        <Input id="unit_price" label="Unit price" type="number" step="0.01" value={form.unit_price} onChange={(e) => update("unit_price", e.target.value)} required />
+        <Input id="unit_of_measure" label="Unit of measure" value={form.unit_of_measure} onChange={(e) => update("unit_of_measure", e.target.value)} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Input label="Reorder point" type="number" value={form.reorder_point} onChange={(e) => update("reorder_point", e.target.value)} />
-        <Input label="Min order qty" type="number" value={form.min_order_quantity} onChange={(e) => update("min_order_quantity", e.target.value)} />
+        <Input id="reorder_point" label="Reorder point" type="number" value={form.reorder_point} onChange={(e) => update("reorder_point", e.target.value)} />
+        <Input id="min_order_quantity" label="Min order qty" type="number" value={form.min_order_quantity} onChange={(e) => update("min_order_quantity", e.target.value)} />
       </div>
 
-      <Input label="Max stock level" type="number" value={form.max_stock_level} onChange={(e) => update("max_stock_level", e.target.value)} />
+      <Input id="max_stock_level" label="Max stock level" type="number" value={form.max_stock_level} onChange={(e) => update("max_stock_level", e.target.value)} />
 
       <Button type="submit" disabled={loading}>
         {loading ? "Saving..." : "Save product"}

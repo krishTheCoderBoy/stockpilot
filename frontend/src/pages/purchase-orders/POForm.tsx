@@ -158,7 +158,7 @@ export function POForm({ suppliers, warehouses, onSuccess }: Props) {
         ))}
       </div>
 
-      <Input label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+      <Input id="notes" label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
 
       <Button type="submit" disabled={loading}>
         {loading ? "Creating..." : "Create purchase order"}
