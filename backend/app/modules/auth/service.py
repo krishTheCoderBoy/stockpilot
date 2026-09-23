@@ -8,13 +8,13 @@ from app.modules.users.repository import UserRepository
 from app.modules.otp.service import OtpService
 from app.modules.otp.models import OtpPurpose
 from app.core.security import hash_password
-from app.core.email import send_email
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 
 from app.core.config import settings
 from app.modules.users.models import User, UserRole
-
+from app.core.queue import email_queue
+from app.jobs.email_jobs import send_email_job
 
 OTP_VALIDITY_DAYS = 30
 
@@ -97,16 +97,19 @@ class AuthService:
 
         user.hashed_password = hash_password(new_password)
         self.db.commit()
+
+
     def forgot_username(self, identifier: str) -> None:
         user = self.repo.get_by_email_or_mobile(identifier)
         if not user:
-            # Do not reveal whether the identifier exists
             return
-        send_email(
+        email_queue.enqueue(
+            send_email_job,
             to_email=user.email,
             subject="Your StockPilot username",
             body=f"Your username is: {user.username}",
         )
+
     def google_login(self, token: str) -> str:
         try:
             idinfo = google_id_token.verify_oauth2_token(
