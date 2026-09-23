@@ -13,3 +13,4 @@ rq_redis_conn = redis.Redis(
 )
 
 email_queue = Queue("emails", connection=rq_redis_conn)
+notification_queue = Queue("notifications", connection=rq_redis_conn)
