@@ -18,6 +18,8 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.limiter import limiter
 from app.core.security_headers import SecurityHeadersMiddleware
+from app.core.redis_client import redis_client
+
 
 
 app = FastAPI(
@@ -54,4 +56,9 @@ app.add_middleware(
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "environment": settings.environment}
+    try:
+        redis_client.ping()
+        redis_status = "ok"
+    except Exception:
+        redis_status = "unreachable"
+    return {"status": "ok", "environment": settings.environment, "redis": redis_status}

@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     smtp_from_email: str = "noreply@stockpilot.com"
     otp_expiry_minutes: int = 10
     google_client_id: str = ""
+    redis_host: str = ""
+    redis_port: int = 6379
+    redis_password: str = ""
+    redis_db: int = 0
     @model_validator(mode="after")
     def check_secret_key(self):
         if self.environment == "production" and self.secret_key == "changeme_dev_secret":
