@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     redis_port: int = 6379
     redis_password: str = ""
     redis_db: int = 0
+    rabbitmq_url: str = ""
     @model_validator(mode="after")
     def check_secret_key(self):
         if self.environment == "production" and self.secret_key == "changeme_dev_secret":
