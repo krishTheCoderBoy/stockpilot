@@ -8,6 +8,8 @@ from app.modules.purchase_orders.models import PurchaseOrder, PurchaseOrderItem,
 from app.modules.purchase_orders.repository import PurchaseOrderRepository
 from app.modules.purchase_orders.schemas import PurchaseOrderCreate
 from decimal import Decimal
+from app.core.events.publisher import publish_event
+from app.core.events.schemas import PurchaseOrderApproved
 
 from app.modules.inventory_movements.service import MovementService
 from app.modules.purchase_orders.schemas import ReceiveRequest
@@ -83,7 +85,15 @@ class PurchaseOrderService:
         po = self.get_po(po_id)
         self._transition(po, POStatus.APPROVED)
         po.approved_by = approved_by
-        return self.repo.save(po)
+        result = self.repo.save(po)
+
+        publish_event(PurchaseOrderApproved(
+            event_id=uuid_lib.uuid4(),
+            occurred_at=datetime.now(timezone.utc),
+            po_id=po.id,
+            approved_by=approved_by,
+        ))
+        return result
 
     def mark_ordered(self, po_id) -> PurchaseOrder:
         po = self.get_po(po_id)
