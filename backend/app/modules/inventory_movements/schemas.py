@@ -1,6 +1,6 @@
 import uuid
 from decimal import Decimal
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
@@ -13,6 +13,7 @@ class MovementCreate(BaseModel):
     movement_type: MovementType
     quantity: Decimal
     unit_cost: Decimal | None = None
+    expiry_date: date | None = None
     notes: str | None = None
 
 

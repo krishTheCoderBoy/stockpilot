@@ -8,6 +8,9 @@ from fastapi import HTTPException, status
 from app.modules.inventory.repository import InventoryRepository
 from app.modules.inventory_movements.models import InventoryMovement, MovementType, ReferenceType
 from app.modules.inventory_movements.repository import MovementRepository
+from app.core.cache import invalidate_cache
+from app.modules.inventory_batches.models import InventoryBatch
+from app.modules.inventory_batches.repository import BatchRepository
 
 INCREASE_TYPES = {MovementType.RECEIVE, MovementType.ADJUSTMENT_INCREASE, MovementType.TRANSFER_IN}
 DECREASE_TYPES = {MovementType.ISSUE, MovementType.ADJUSTMENT_DECREASE, MovementType.TRANSFER_OUT}
@@ -18,6 +21,7 @@ class MovementService:
         self.db = db
         self.inventory_repo = InventoryRepository(db)
         self.movement_repo = MovementRepository(db)
+        self.batch_repo = BatchRepository(db)
 
     def _apply_single_movement(
         self,
@@ -30,6 +34,7 @@ class MovementService:
         reference_id,
         performed_by,
         notes: str | None,
+        expiry_date: date | None = None,
     ) -> InventoryMovement:
         if quantity <= 0:
             raise HTTPException(
@@ -48,6 +53,17 @@ class MovementService:
                 )
             inventory.on_hand_quantity += quantity
 
+            if movement_type == MovementType.RECEIVE:
+                self.batch_repo.create(InventoryBatch(
+                    product_id=product_id,
+                    warehouse_id=warehouse_id,
+                    batch_number=f"BATCH-{uuid_lib.uuid4().hex[:8].upper()}",
+                    received_quantity=quantity,
+                    remaining_quantity=quantity,
+                    unit_cost=unit_cost,
+                    expiry_date=expiry_date,
+                ))
+
         elif movement_type in DECREASE_TYPES:
             if inventory.on_hand_quantity < quantity:
                 raise HTTPException(
@@ -55,6 +71,15 @@ class MovementService:
                     detail="Insufficient stock for this movement",
                 )
             inventory.on_hand_quantity -= quantity
+
+            if movement_type == MovementType.ISSUE:
+                remaining_to_consume = quantity
+                for batch in self.batch_repo.get_consumable_batches(product_id, warehouse_id):
+                    if remaining_to_consume <= 0:
+                        break
+                    take = min(batch.remaining_quantity, remaining_to_consume)
+                    batch.remaining_quantity -= take
+                    remaining_to_consume -= take
 
         inventory.last_movement_at = datetime.now(timezone.utc)
 
@@ -84,9 +109,11 @@ class MovementService:
                 reference_id=None,
                 performed_by=performed_by,
                 notes=payload.notes,
+                expiry_date=payload.expiry_date,
             )
             self.db.commit()
             self.db.refresh(movement)
+            invalidate_cache("dashboard:summary")
             return movement
         except Exception:
             self.db.rollback()

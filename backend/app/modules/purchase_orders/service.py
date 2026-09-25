@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from app.modules.inventory_movements.service import MovementService
 from app.modules.purchase_orders.schemas import ReceiveRequest
+from backend.app.core.cache import invalidate_cache
 
 # Explicit allowed transitions — the state machine, as data, not scattered if/else
 ALLOWED_TRANSITIONS = {
@@ -41,6 +42,7 @@ class PurchaseOrderService:
             )
         po.status = new_status
         po.updated_at = datetime.now(timezone.utc)
+        invalidate_cache("dashboard:summary")
 
     def create_po(self, payload: PurchaseOrderCreate, created_by) -> PurchaseOrder:
         po = PurchaseOrder(
@@ -59,7 +61,9 @@ class PurchaseOrderService:
                     unit_price=item.unit_price,
                 )
             )
-        return self.repo.create(po)
+        result = self.repo.create(po)
+        invalidate_cache("dashboard:summary")
+        return result
 
     def get_po(self, po_id) -> PurchaseOrder:
         po = self.repo.get_by_id(po_id)
@@ -143,6 +147,7 @@ class PurchaseOrderService:
 
             self.db.commit()
             self.db.refresh(po)
+            invalidate_cache("dashboard:summary")
             return po
         except Exception:
             self.db.rollback()

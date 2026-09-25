@@ -29,5 +29,10 @@ class Settings(BaseSettings):
         if self.environment == "production" and self.secret_key == "changeme_dev_secret":
             raise ValueError("SECRET_KEY must be set to a real value in production")
         return self
+    
+    @property
+    def redis_uri(self) -> str:
+        auth = f":{self.redis_password}@" if self.redis_password else ""
+        return f"redis://{auth}{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
 settings = Settings()

@@ -9,6 +9,7 @@ from app.modules.inventory.models import Inventory
 from app.modules.purchase_orders.models import PurchaseOrder, POStatus
 from app.modules.inventory_movements.models import InventoryMovement, MovementType
 from app.modules.warehouses.models import Warehouse
+from app.core.cache import cache_result
 
 PENDING_PO_STATUSES = {POStatus.DRAFT, POStatus.SUBMITTED, POStatus.APPROVED, POStatus.ORDERED, POStatus.PARTIALLY_RECEIVED}
 INCREASE_TYPES = {MovementType.RECEIVE, MovementType.ADJUSTMENT_INCREASE, MovementType.TRANSFER_IN}
@@ -19,6 +20,7 @@ class DashboardService:
     def __init__(self, db: Session):
         self.db = db
 
+    @cache_result(key="dashboard:summary", ttl=60)
     def get_summary(self) -> dict:
         total_products = self.db.query(func.count(Product.id)).filter(Product.is_active.is_(True)).scalar() or 0
 
@@ -44,7 +46,7 @@ class DashboardService:
 
         return {
             "total_products": total_products,
-            "total_inventory_value": total_inventory_value,
+            "total_inventory_value": str(total_inventory_value),
             "pending_purchase_orders": pending_purchase_orders,
             "low_stock_items": low_stock_items,
         }
