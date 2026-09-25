@@ -14,6 +14,7 @@ from app.modules.warehouses.models import Warehouse
 from app.modules.inventory.models import Inventory
 from app.modules.inventory_movements.models import InventoryMovement
 from app.modules.purchase_orders.models import PurchaseOrder, PurchaseOrderItem
+from app.modules.inventory_batches.models import InventoryBatch
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 

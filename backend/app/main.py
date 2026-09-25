@@ -15,7 +15,7 @@ from app.modules.dashboard.routes import router as dashboard_router
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-
+from app.modules.inventory_batches.routes import router as batches_router
 from app.core.limiter import limiter
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.redis_client import redis_client
@@ -38,6 +38,7 @@ app.include_router(products_router)
 app.include_router(warehouses_router)
 app.include_router(movements_router)
 app.include_router(dashboard_router)
+app.include_router(batches_router)
 
 
 app.state.limiter = limiter
