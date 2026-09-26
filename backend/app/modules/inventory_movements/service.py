@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -11,6 +11,9 @@ from app.modules.inventory_movements.repository import MovementRepository
 from app.core.cache import invalidate_cache
 from app.modules.inventory_batches.models import InventoryBatch
 from app.modules.inventory_batches.repository import BatchRepository
+from app.core.events.publisher import publish_event
+from app.core.events.schemas import InventoryUpdated, StockLow
+from app.modules.products.models import Product
 
 INCREASE_TYPES = {MovementType.RECEIVE, MovementType.ADJUSTMENT_INCREASE, MovementType.TRANSFER_IN}
 DECREASE_TYPES = {MovementType.ISSUE, MovementType.ADJUSTMENT_DECREASE, MovementType.TRANSFER_OUT}
@@ -57,7 +60,7 @@ class MovementService:
                 self.batch_repo.create(InventoryBatch(
                     product_id=product_id,
                     warehouse_id=warehouse_id,
-                    batch_number=f"BATCH-{uuid_lib.uuid4().hex[:8].upper()}",
+                    batch_number=f"BATCH-{uuid.uuid4().hex[:8].upper()}",
                     received_quantity=quantity,
                     remaining_quantity=quantity,
                     unit_cost=unit_cost,
@@ -95,7 +98,26 @@ class MovementService:
             notes=notes,
         )
         self.movement_repo.add(movement)
+        publish_event(InventoryUpdated(
+            event_id=uuid.uuid4(),
+            occurred_at=datetime.now(timezone.utc),
+            product_id=product_id,
+            warehouse_id=warehouse_id,
+            on_hand_quantity=inventory.on_hand_quantity,
+        ))
+
+        product = self.db.query(Product).filter(Product.id == product_id).first()
+        if product and inventory.on_hand_quantity <= product.reorder_point:
+            publish_event(StockLow(
+                event_id=uuid.uuid4(),
+                occurred_at=datetime.now(timezone.utc),
+                product_id=product_id,
+                warehouse_id=warehouse_id,
+                on_hand_quantity=inventory.on_hand_quantity,
+                reorder_point=product.reorder_point,
+            ))
         return movement
+
 
     def create_movement(self, payload, performed_by) -> InventoryMovement:
         try:
@@ -153,6 +175,16 @@ class MovementService:
             self.db.commit()
             self.db.refresh(out_movement)
             self.db.refresh(in_movement)
+            invalidate_cache("dashboard:summary")
+
+            publish_event(InventoryTransferred(
+                event_id=uuid_lib.uuid4(),
+                occurred_at=datetime.now(timezone.utc),
+                product_id=payload.product_id,
+                source_warehouse_id=payload.source_warehouse_id,
+                destination_warehouse_id=payload.destination_warehouse_id,
+                quantity=payload.quantity,
+            ))
             return out_movement, in_movement
         except Exception:
             self.db.rollback()
