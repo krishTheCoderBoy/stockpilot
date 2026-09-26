@@ -14,6 +14,8 @@ from app.core.events.schemas import PurchaseOrderApproved
 from app.modules.inventory_movements.service import MovementService
 from app.modules.purchase_orders.schemas import ReceiveRequest
 from backend.app.core.cache import invalidate_cache
+from app.core.events.schemas import PurchaseOrderCreated
+from app.core.events.schemas import PurchaseOrderReceived
 
 # Explicit allowed transitions — the state machine, as data, not scattered if/else
 ALLOWED_TRANSITIONS = {
@@ -65,7 +67,17 @@ class PurchaseOrderService:
             )
         result = self.repo.create(po)
         invalidate_cache("dashboard:summary")
+
+        publish_event(PurchaseOrderCreated(
+            event_id=uuid_lib.uuid4(),
+            occurred_at=datetime.now(timezone.utc),
+            po_id=result.id,
+            po_number=result.po_number,
+            supplier_id=result.supplier_id,
+            warehouse_id=result.warehouse_id,
+        ))
         return result
+
 
     def get_po(self, po_id) -> PurchaseOrder:
         po = self.repo.get_by_id(po_id)
@@ -158,6 +170,13 @@ class PurchaseOrderService:
             self.db.commit()
             self.db.refresh(po)
             invalidate_cache("dashboard:summary")
+
+            publish_event(PurchaseOrderReceived(
+                event_id=uuid_lib.uuid4(),
+                occurred_at=datetime.now(timezone.utc),
+                po_id=po.id,
+                fully_received=fully_received,
+            ))
             return po
         except Exception:
             self.db.rollback()
