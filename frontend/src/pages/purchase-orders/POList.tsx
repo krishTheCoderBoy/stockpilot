@@ -9,7 +9,7 @@ import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Modal } from "../../components/ui/Modal";
-import { api } from "../../lib/api";
+import { inventoryApi, procurementApi } from "../../lib/api";
 import { type PurchaseOrder, type Supplier, type Warehouse } from "../../lib/queries";
 import { POForm } from "./POForm";
 import { useAuth } from "../../context/AuthContext";
@@ -32,17 +32,17 @@ export function POList() {
 
   const { data: pos, isLoading, refetch } = useQuery<PurchaseOrder[]>({
     queryKey: ["purchase-orders"],
-    queryFn: async () => (await api.get("/purchase-orders/")).data,
+    queryFn: async () => (await procurementApi.get("/purchase-orders/")).data,
   });
 
   const { data: suppliers } = useQuery<Supplier[]>({
     queryKey: ["suppliers"],
-    queryFn: async () => (await api.get("/suppliers/")).data,
+    queryFn: async () => (await procurementApi.get("/suppliers/")).data,
   });
 
   const { data: warehouses } = useQuery<Warehouse[]>({
     queryKey: ["warehouses"],
-    queryFn: async () => (await api.get("/warehouses/")).data,
+    queryFn: async () => (await inventoryApi.get("/warehouses/")).data,
   });
 
   const supplierMap = new Map((suppliers ?? []).map((s) => [s.id, s.name]));

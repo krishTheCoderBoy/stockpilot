@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api, extractErrorMessage } from "../../lib/api";
+import { procurementApi, extractErrorMessage } from "../../lib/api"
 import { type PurchaseOrder, type Product } from "../../lib/queries";
 
 interface Props {
@@ -35,7 +35,7 @@ export function ReceiveForm({ po, productMap, onSuccess }: Props) {
 
     setLoading(true);
     try {
-      await api.post(`/purchase-orders/${po.id}/receive`, { items });
+      await procurementApi.post(`/purchase-orders/${po.id}/receive`, { items });
       onSuccess();
     } catch (err) {
       setError(extractErrorMessage(err));

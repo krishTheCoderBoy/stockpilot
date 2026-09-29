@@ -7,7 +7,7 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
 import { Modal } from "../../components/ui/Modal";
-import { api, extractErrorMessage } from "../../lib/api";
+import { inventoryApi, procurementApi, extractErrorMessage } from "../../lib/api"
 import { type PurchaseOrder, type Product, type Supplier, type Warehouse } from "../../lib/queries";
 import { ReceiveForm } from "./ReceiveForm";
 import { useAuth } from "../../context/AuthContext";
@@ -35,22 +35,22 @@ export function PODetail() {
 
   const { data: po, isLoading, refetch } = useQuery<PurchaseOrder>({
     queryKey: ["purchase-order", id],
-    queryFn: async () => (await api.get(`/purchase-orders/${id}`)).data,
+    queryFn: async () => (await procurementApi.get(`/purchase-orders/${id}`)).data,
   });
 
   const { data: products } = useQuery<Product[]>({
     queryKey: ["products"],
-    queryFn: async () => (await api.get("/products/")).data,
+    queryFn: async () => (await inventoryApi.get("/products/")).data,
   });
 
   const { data: suppliers } = useQuery<Supplier[]>({
     queryKey: ["suppliers"],
-    queryFn: async () => (await api.get("/suppliers/")).data,
+    queryFn: async () => (await procurementApi.get("/suppliers/")).data,
   });
 
   const { data: warehouses } = useQuery<Warehouse[]>({
     queryKey: ["warehouses"],
-    queryFn: async () => (await api.get("/warehouses/")).data,
+    queryFn: async () => (await inventoryApi.get("/warehouses/")).data,
   });
 
   const productMap = new Map((products ?? []).map((p) => [p.id, p]));
@@ -61,7 +61,7 @@ export function PODetail() {
     setError(null);
     setActionLoading(true);
     try {
-      await api.post(`/purchase-orders/${id}/${action}`);
+      await procurementApi.post(`/purchase-orders/${id}/${action}`);
       refetch();
     } catch (err) {
       setError(extractErrorMessage(err));

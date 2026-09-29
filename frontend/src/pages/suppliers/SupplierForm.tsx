@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api, extractErrorMessage } from "../../lib/api";
+import { procurementApi, extractErrorMessage } from "../../lib/api"
 
 export function SupplierForm({ onSuccess }: { onSuccess: () => void }) {
   const [form, setForm] = useState({
@@ -26,7 +26,7 @@ export function SupplierForm({ onSuccess }: { onSuccess: () => void }) {
     setError(null);
     setLoading(true);
     try {
-      await api.post("/suppliers/", {
+      await procurementApi.post("/suppliers/", {
         code: form.code,
         name: form.name,
         contact_person: form.contact_person || null,

@@ -34,6 +34,7 @@ class InventoryMovement(Base):
     unit_cost = Column(Numeric(12, 2), nullable=True)
     reference_type = Column(SAEnum(ReferenceType, name="reference_type"), nullable=False, default=ReferenceType.MANUAL)
     reference_id = Column(UUID(as_uuid=True), nullable=True)
-    performed_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    # Actor identity is supplied by the verified JWT; users are owned by auth_db.
+    performed_by = Column(UUID(as_uuid=True), nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
