@@ -26,6 +26,15 @@ class PurchaseOrderApproved(DomainEvent):
     approved_by: uuid.UUID
 
 
+class ReceivePurchaseOrderItems(DomainEvent):
+    event_type: Literal["ReceivePurchaseOrderItems"] = "ReceivePurchaseOrderItems"
+    po_id: uuid.UUID
+    po_number: str
+    warehouse_id: uuid.UUID
+    performed_by: uuid.UUID
+    items: list[dict]
+
+
 class PurchaseOrderReceived(DomainEvent):
     event_type: Literal["PurchaseOrderReceived"] = "PurchaseOrderReceived"
     po_id: uuid.UUID

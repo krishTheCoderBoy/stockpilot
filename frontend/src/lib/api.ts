@@ -1,12 +1,19 @@
 import axios from "axios";
 
+const gatewayBaseUrl = import.meta.env.VITE_API_GATEWAY_BASE_URL;
+
 export const authApi = axios.create({
-  baseURL: import.meta.env.VITE_AUTH_API_BASE_URL,
+  baseURL: gatewayBaseUrl || import.meta.env.VITE_AUTH_API_BASE_URL,
+  headers: { "Content-Type": "application/json" },
+});
+
+export const procurementApi = axios.create({
+  baseURL: gatewayBaseUrl || import.meta.env.VITE_PROCUREMENT_API_BASE_URL,
   headers: { "Content-Type": "application/json" },
 });
 
 export const inventoryApi = axios.create({
-  baseURL: import.meta.env.VITE_INVENTORY_API_BASE_URL,
+  baseURL: gatewayBaseUrl || import.meta.env.VITE_INVENTORY_API_BASE_URL,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -35,6 +42,7 @@ function attachAuthInterceptors(instance: typeof authApi) {
 
 attachAuthInterceptors(authApi);
 attachAuthInterceptors(inventoryApi);
+attachAuthInterceptors(procurementApi);
 
 export function extractErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {

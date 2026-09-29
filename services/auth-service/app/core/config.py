@@ -6,8 +6,8 @@ class Settings(BaseSettings):
     app_name: str = "StockPilot"
     environment: str = "development"
     debug: bool = True
-    database_url: str = "postgresql+psycopg2://stockpilot_user:stockpilot_pass@localhost:5432/stockpilot_db"
-    test_database_url: str = "postgresql+psycopg2://stockpilot_user:choose_a_strong_password@localhost:5432/stockpilot_test_db"
+    database_url: str = "postgresql+psycopg2://stockpilot_user:stockpilot_pass@localhost:5432/auth_db"
+    test_database_url: str = "postgresql+psycopg2://stockpilot_user:choose_a_strong_password@localhost:5432/auth_test_db"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
     secret_key: str = "changeme_dev_secret"

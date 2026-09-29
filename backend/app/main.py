@@ -8,8 +8,6 @@ from app.modules.products.categories_routes import router as categories_router
 from app.modules.warehouses.routes import router as warehouses_router
 from app.modules.inventory.routes import router as inventory_router
 from app.modules.inventory_movements.routes import router as movements_router
-from app.modules.suppliers.routes import router as suppliers_router
-from app.modules.purchase_orders.routes import router as po_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.modules.dashboard.routes import router as dashboard_router
 from slowapi import _rate_limit_exceeded_handler
@@ -30,8 +28,6 @@ app = FastAPI(
 )
 app.include_router(users_router)
 app.include_router(categories_router)
-app.include_router(po_router)
-app.include_router(suppliers_router)
 app.include_router(inventory_router)
 app.include_router(auth_router)
 app.include_router(products_router)
