@@ -4,7 +4,7 @@ import { Package, ArrowRight } from "lucide-react";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api, extractErrorMessage } from "../../lib/api";
+import { authApi, extractErrorMessage } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import loginHero from "../../assets/login-hero-2.png";
 
@@ -21,7 +21,7 @@ export function Login() {
     setError(null);
     setLoading(true);
     try {
-      const res = await api.post("/auth/login", { email, password });
+      const res = await authApi.post("/auth/login", { email, password });
       if (res.data.otp_required) {
         navigate("/verify-login-otp", { state: { email } });
       } else {
