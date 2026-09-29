@@ -4,7 +4,7 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api } from "../../lib/api";
+import {authApi } from "../../lib/api";
 
 export function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -15,7 +15,7 @@ export function ForgotPassword() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await api.post("/auth/forgot-password", { email });
+    await authApi.post("/auth/forgot-password", { email });
     setLoading(false);
     setSent(true);
   }

@@ -4,7 +4,7 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api, extractErrorMessage } from "../../lib/api";
+import { authApi, extractErrorMessage } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 
 export function VerifyLoginOtp() {
@@ -22,7 +22,7 @@ export function VerifyLoginOtp() {
     setResending(true);
     setResendMessage(null);
     try {
-      await api.post("/auth/resend-login-otp", { email });
+      await authApi.post("/auth/resend-login-otp", { email });
       setResendMessage("A new code has been sent.");
     } finally {
       setResending(false);
@@ -34,7 +34,7 @@ export function VerifyLoginOtp() {
     setError(null);
     setLoading(true);
     try {
-      const res = await api.post("/auth/verify-login-otp", { email, otp_code: otpCode });
+      const res = await authApi.post("/auth/verify-login-otp", { email, otp_code: otpCode });
       login(res.data.access_token);
       navigate("/");
     } catch (err) {

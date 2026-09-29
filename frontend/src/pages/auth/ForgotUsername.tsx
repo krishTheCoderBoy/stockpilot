@@ -4,7 +4,7 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api } from "../../lib/api";
+import { authApi } from "../../lib/api";
 
 export function ForgotUsername() {
   const [identifier, setIdentifier] = useState("");
@@ -14,7 +14,7 @@ export function ForgotUsername() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await api.post("/auth/forgot-username", { identifier });
+    await authApi.post("/auth/forgot-username", { identifier });
     setLoading(false);
     setSent(true);
   }

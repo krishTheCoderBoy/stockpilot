@@ -4,7 +4,7 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api, extractErrorMessage } from "../../lib/api";
+import { authApi, extractErrorMessage } from "../../lib/api";
 
 export function ResetPassword() {
   const location = useLocation();
@@ -21,7 +21,7 @@ export function ResetPassword() {
     setError(null);
     setLoading(true);
     try {
-      await api.post("/auth/reset-password", { email, otp_code: otpCode, new_password: newPassword });
+      await authApi.post("/auth/reset-password", { email, otp_code: otpCode, new_password: newPassword });
       navigate("/login");
     } catch (err) {
       setError(extractErrorMessage(err));
