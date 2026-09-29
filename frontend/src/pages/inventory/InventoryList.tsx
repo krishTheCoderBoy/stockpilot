@@ -6,7 +6,7 @@ import { Card } from "../../components/ui/Card";
 import { Table } from "../../components/ui/Table";
 import { Badge } from "../../components/ui/Badge";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { api } from "../../lib/api";
+import { inventoryApi } from "../../lib/api";
 import { type InventoryRow, type Product, type Warehouse } from "../../lib/queries";
 
 export function InventoryList() {
@@ -14,17 +14,17 @@ export function InventoryList() {
 
   const { data: inventory, isLoading } = useQuery<InventoryRow[]>({
     queryKey: ["inventory"],
-    queryFn: async () => (await api.get("/inventory/")).data,
+    queryFn: async () => (await inventoryApi.get("/inventory/")).data,
   });
 
   const { data: products } = useQuery<Product[]>({
     queryKey: ["products"],
-    queryFn: async () => (await api.get("/products/")).data,
+    queryFn: async () => (await inventoryApi.get("/products/")).data,
   });
 
   const { data: warehouses } = useQuery<Warehouse[]>({
     queryKey: ["warehouses"],
-    queryFn: async () => (await api.get("/warehouses/")).data,
+    queryFn: async () => (await inventoryApi.get("/warehouses/")).data,
   });
 
   const productMap = useMemo(

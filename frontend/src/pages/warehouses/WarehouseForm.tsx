@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api, extractErrorMessage } from "../../lib/api";
+import { inventoryApi, extractErrorMessage } from "../../lib/api";
 
 const WAREHOUSE_TYPES = ["MAIN", "REGIONAL", "TRANSIT"] as const;
 
@@ -28,7 +28,7 @@ export function WarehouseForm({ onSuccess }: { onSuccess: () => void }) {
     setError(null);
     setLoading(true);
     try {
-      await api.post("/warehouses/", {
+      await inventoryApi.post("/warehouses/", {
         ...form,
         capacity: form.capacity ? Number(form.capacity) : null,
       });

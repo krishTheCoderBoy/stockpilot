@@ -8,7 +8,7 @@ import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Modal } from "../../components/ui/Modal";
-import { api } from "../../lib/api";
+import { inventoryApi } from "../../lib/api";
 import { type Product } from "../../lib/queries";
 import { ProductForm } from "./ProductForm";
 import { useAuth } from "../../context/AuthContext";
@@ -20,7 +20,7 @@ export function ProductsList() {
 
   const { data: products, isLoading, refetch } = useQuery<Product[]>({
     queryKey: ["products"],
-    queryFn: async () => (await api.get("/products/")).data,
+    queryFn: async () => (await inventoryApi.get("/products/")).data,
   });
 
   return (

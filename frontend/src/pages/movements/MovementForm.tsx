@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api, extractErrorMessage } from "../../lib/api";
+import { inventoryApi, extractErrorMessage } from "../../lib/api";
 import { type Product, type Warehouse } from "../../lib/queries";
 
 const MOVEMENT_TYPES = ["RECEIVE", "ISSUE", "ADJUSTMENT_INCREASE", "ADJUSTMENT_DECREASE"] as const;
@@ -34,7 +34,7 @@ export function MovementForm({ products, warehouses, onSuccess }: Props) {
     setError(null);
     setLoading(true);
     try {
-      await api.post("/inventory-movements/", {
+      await inventoryApi.post("/inventory-movements/", {
         product_id: form.product_id,
         warehouse_id: form.warehouse_id,
         movement_type: form.movement_type,
