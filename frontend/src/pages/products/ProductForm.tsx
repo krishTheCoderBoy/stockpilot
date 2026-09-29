@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api, extractErrorMessage } from "../../lib/api";
+import { inventoryApi, extractErrorMessage } from "../../lib/api";
 import { type Category } from "../../lib/queries";
 
 export function ProductForm({ onSuccess }: { onSuccess: () => void }) {
@@ -23,7 +23,7 @@ export function ProductForm({ onSuccess }: { onSuccess: () => void }) {
 
   const { data: categories } = useQuery<Category[]>({
     queryKey: ["product-categories"],
-    queryFn: async () => (await api.get("/product-categories/")).data,
+    queryFn: async () => (await inventoryApi.get("/product-categories/")).data,
   });
 
   function update(field: string, value: string) {
@@ -35,7 +35,7 @@ export function ProductForm({ onSuccess }: { onSuccess: () => void }) {
     setError(null);
     setLoading(true);
     try {
-      await api.post("/products/", {
+      await inventoryApi.post("/products/", {
         ...form,
         category_id: form.category_id || null,
         unit_price: Number(form.unit_price),

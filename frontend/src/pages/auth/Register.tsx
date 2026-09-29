@@ -4,7 +4,7 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api, extractErrorMessage } from "../../lib/api";
+import { authApi, extractErrorMessage } from "../../lib/api";
 import { AppShell } from "../../components/shell/AppShell";
 
 export function Register() {
@@ -30,7 +30,7 @@ export function Register() {
     setError(null);
     setLoading(true);
         try {
-      await api.post("/users/", form);
+      await authApi.post("/users/", form);
       navigate("/settings/users");
     } catch (err) {
       setError(extractErrorMessage(err));

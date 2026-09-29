@@ -4,7 +4,7 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api, extractErrorMessage } from "../../lib/api";
+import { authApi, extractErrorMessage } from "../../lib/api";
 
 export function VerifyRegistrationOtp() {
   const location = useLocation();
@@ -20,7 +20,7 @@ export function VerifyRegistrationOtp() {
     setError(null);
     setLoading(true);
     try {
-      await api.post("/users/verify-otp", { email, otp_code: otpCode });
+      await authApi.post("/users/verify-otp", { email, otp_code: otpCode });
       setSuccess(true);
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
