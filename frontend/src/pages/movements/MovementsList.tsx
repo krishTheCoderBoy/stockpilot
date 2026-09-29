@@ -8,7 +8,7 @@ import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Modal } from "../../components/ui/Modal";
-import { api } from "../../lib/api";
+import { inventoryApi } from "../../lib/api";
 import { type Movement, type Product, type Warehouse } from "../../lib/queries";
 import { MovementForm } from "./MovementForm";
 import { TransferForm } from "./TransferForm";
@@ -31,17 +31,17 @@ export function MovementsList() {
 
   const { data: movements, isLoading, refetch } = useQuery<Movement[]>({
     queryKey: ["movements"],
-    queryFn: async () => (await api.get("/inventory-movements/")).data,
+    queryFn: async () => (await inventoryApi.get("/inventory-movements/")).data,
   });
 
   const { data: products } = useQuery<Product[]>({
     queryKey: ["products"],
-    queryFn: async () => (await api.get("/products/")).data,
+    queryFn: async () => (await inventoryApi.get("/products/")).data,
   });
 
   const { data: warehouses } = useQuery<Warehouse[]>({
     queryKey: ["warehouses"],
-    queryFn: async () => (await api.get("/warehouses/")).data,
+    queryFn: async () => (await inventoryApi.get("/warehouses/")).data,
   });
 
   const productMap = useMemo(() => new Map((products ?? []).map((p) => [p.id, p])), [products]);
