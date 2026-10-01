@@ -2,6 +2,11 @@ import axios from "axios";
 
 const gatewayBaseUrl = import.meta.env.VITE_API_GATEWAY_BASE_URL;
 
+export const api = axios.create({
+  baseURL: gatewayBaseUrl || import.meta.env.VITE_API_BASE_URL,
+  headers: { "Content-Type": "application/json" },
+});
+
 export const authApi = axios.create({
   baseURL: gatewayBaseUrl || import.meta.env.VITE_AUTH_API_BASE_URL,
   headers: { "Content-Type": "application/json" },
@@ -40,6 +45,7 @@ function attachAuthInterceptors(instance: typeof authApi) {
   );
 }
 
+attachAuthInterceptors(api);
 attachAuthInterceptors(authApi);
 attachAuthInterceptors(inventoryApi);
 attachAuthInterceptors(procurementApi);
