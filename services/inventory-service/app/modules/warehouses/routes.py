@@ -34,6 +34,19 @@ def list_warehouses(
     return service.list_warehouses(skip, limit)
 
 
+@router.get("/search", response_model=list[WarehouseOut])
+def search_warehouses(
+    q: str,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role("admin", "inventory_manager", "procurement_manager")
+    ),
+):
+    service = WarehouseService(db)
+    return service.search_warehouses(q, limit)
+
+
 @router.get("/{warehouse_id}", response_model=WarehouseOut)
 def get_warehouse(
     warehouse_id: uuid.UUID,

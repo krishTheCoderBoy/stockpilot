@@ -36,3 +36,6 @@ class ProductService:
         for field, value in updates.items():
             setattr(product, field, value)
         return self.repo.update(product)
+
+    def search_products(self, query: str, limit: int = 20) -> list[Product]:
+        return self.repo.search(query, limit)

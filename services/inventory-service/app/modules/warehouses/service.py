@@ -36,3 +36,6 @@ class WarehouseService:
         for field, value in updates.items():
             setattr(warehouse, field, value)
         return self.repo.update(warehouse)
+
+    def search_warehouses(self, query: str, limit: int = 20) -> list[Warehouse]:
+        return self.repo.search(query, limit)

@@ -2,7 +2,7 @@ import uuid
 
 from sqlalchemy import Column, String, Numeric, Boolean, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from app.core.database import Base
 
 
@@ -23,4 +23,5 @@ class Product(Base):
     max_stock_level = Column(Numeric(12, 2), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     # Supplier is owned by procurement; this UUID is validated through its service API.
+    search_vector = Column(TSVECTOR, nullable=True)  # populated by DB trigger, never set from app code
     default_supplier_id = Column(UUID(as_uuid=True), nullable=True)

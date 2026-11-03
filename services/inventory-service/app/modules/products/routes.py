@@ -51,3 +51,13 @@ def update_product(
 ):
     service = ProductService(db)
     return service.update_product(product_id, payload)
+
+@router.get("/search", response_model=list[ProductOut])
+def search_products(
+    q: str,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role("ADMIN", "INVENTORY_MANAGER", "PROCUREMENT_MANAGER")),
+):
+    service = ProductService(db)
+    return service.search_products(q, limit)

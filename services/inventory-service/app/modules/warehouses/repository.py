@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.modules.warehouses.models import Warehouse
 
@@ -26,3 +27,13 @@ class WarehouseRepository:
         self.db.commit()
         self.db.refresh(warehouse)
         return warehouse
+
+    def search(self, query: str, limit: int = 20) -> list[Warehouse]:
+        ts_query = func.websearch_to_tsquery("english", query)
+        return (
+            self.db.query(Warehouse)
+            .filter(Warehouse.search_vector.op("@@")(ts_query))
+            .order_by(func.ts_rank(Warehouse.search_vector, ts_query).desc())
+            .limit(limit)
+            .all()
+        )

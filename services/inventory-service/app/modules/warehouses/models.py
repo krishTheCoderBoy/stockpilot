@@ -3,6 +3,7 @@ import uuid
 
 from sqlalchemy import Column, String, Boolean, Numeric, Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import TSVECTOR
 
 from app.core.database import Base
 
@@ -29,3 +30,4 @@ class Warehouse(Base):
         SAEnum(WarehouseType, name="warehouse_type"), nullable=False, default=WarehouseType.MAIN
     )
     is_active = Column(Boolean, default=True, nullable=False)
+    search_vector = Column(TSVECTOR, nullable=True)  # populated by DB trigger, never set from app code
