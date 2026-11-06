@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api, extractErrorMessage } from "../../lib/api";
+import {  extractErrorMessage, inventoryApi } from "../../lib/api";
 import { type Product, type Warehouse } from "../../lib/queries";
 
 interface Props {
@@ -37,7 +37,7 @@ export function TransferForm({ products, warehouses, onSuccess }: Props) {
 
     setLoading(true);
     try {
-      await api.post("/inventory-movements/transfer", {
+      await inventoryApi.post("/inventory-movements/transfer", {
         product_id: form.product_id,
         source_warehouse_id: form.source_warehouse_id,
         destination_warehouse_id: form.destination_warehouse_id,

@@ -4,7 +4,7 @@ import { Trash2, Plus } from "lucide-react";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
-import { api, extractErrorMessage } from "../../lib/api";
+import { inventoryApi, procurementApi, extractErrorMessage } from "../../lib/api"
 import { type Product, type Supplier, type Warehouse } from "../../lib/queries";
 
 interface LineItem {
@@ -29,7 +29,7 @@ export function POForm({ suppliers, warehouses, onSuccess }: Props) {
 
   const { data: products } = useQuery<Product[]>({
     queryKey: ["products"],
-    queryFn: async () => (await api.get("/products/")).data,
+    queryFn: async () => (await inventoryApi.get("/products/")).data,
   });
 
   function updateItem(index: number, field: keyof LineItem, value: string) {
@@ -55,7 +55,7 @@ export function POForm({ suppliers, warehouses, onSuccess }: Props) {
 
     setLoading(true);
     try {
-      await api.post("/purchase-orders/", {
+      await procurementApi.post("/purchase-orders/", {
         supplier_id: supplierId,
         warehouse_id: warehouseId,
         notes: notes || null,

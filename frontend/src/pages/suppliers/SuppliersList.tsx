@@ -8,7 +8,7 @@ import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Modal } from "../../components/ui/Modal";
-import { api } from "../../lib/api";
+import { procurementApi } from "../../lib/api";
 import { type Supplier } from "../../lib/queries";
 import { SupplierForm } from "./SupplierForm";
 import { useAuth } from "../../context/AuthContext";
@@ -20,7 +20,7 @@ export function SuppliersList() {
 
   const { data: suppliers, isLoading, refetch } = useQuery<Supplier[]>({
     queryKey: ["suppliers"],
-    queryFn: async () => (await api.get("/suppliers/")).data,
+    queryFn: async () => (await procurementApi.get("/suppliers/")).data,
   });
 
   return (

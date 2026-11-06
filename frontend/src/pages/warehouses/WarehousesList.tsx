@@ -8,7 +8,7 @@ import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Modal } from "../../components/ui/Modal";
-import { api } from "../../lib/api";
+import { inventoryApi } from "../../lib/api";
 import { type Warehouse } from "../../lib/queries";
 import { WarehouseForm } from "./WarehouseForm";
 import { useAuth } from "../../context/AuthContext";
@@ -26,7 +26,7 @@ export function WarehousesList() {
 
   const { data: warehouses, isLoading, refetch } = useQuery<Warehouse[]>({
     queryKey: ["warehouses"],
-    queryFn: async () => (await api.get("/warehouses/")).data,
+    queryFn: async () => (await inventoryApi.get("/warehouses/")).data,
   });
 
   return (
