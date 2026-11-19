@@ -8,6 +8,7 @@ from app.modules.products.schemas import ProductCreate, ProductUpdate
 
 class ProductService:
     def __init__(self, db: Session):
+        self.db = db
         self.repo = ProductRepository(db)
 
     def create_product(self, payload: ProductCreate) -> Product:
@@ -16,8 +17,14 @@ class ProductService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="SKU already exists",
             )
-        product = Product(**payload.model_dump())
-        return self.repo.create(product)
+        try:
+            product = self.repo.create(Product(**payload.model_dump()))
+            self.db.commit()
+            self.db.refresh(product)
+            return product
+        except Exception:
+            self.db.rollback()
+            raise
 
     def get_product(self, product_id) -> Product:
         product = self.repo.get_by_id(product_id)
@@ -35,7 +42,14 @@ class ProductService:
         updates = payload.model_dump(exclude_unset=True)
         for field, value in updates.items():
             setattr(product, field, value)
-        return self.repo.update(product)
+        try:
+            self.repo.update(product)
+            self.db.commit()
+            self.db.refresh(product)
+            return product
+        except Exception:
+            self.db.rollback()
+            raise
 
     def search_products(self, query: str, limit: int = 20) -> list[Product]:
         return self.repo.search(query, limit)

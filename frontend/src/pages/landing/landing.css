@@ -1,0 +1,1384 @@
+@import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Inter:wght@400;500;600&display=swap");
+
+/*
+ * Landing-only styles. Everything is scoped under .lp-root and uses --lp-* tokens, so
+ * nothing here leaks into the dashboard (which has its own tokens in index.css).
+ * Spec: docs/landing-spec.md
+ */
+
+.lp-root {
+  --lp-navy: #050b1f;
+  --lp-white: #ffffff;
+  --lp-red: #e5171f;
+  --lp-teal: #19b5b0;
+  /* Reserved for the hero ring only. */
+  --lp-neon: linear-gradient(90deg, #e5171f, #d4189a, #2f5bff);
+
+  --lp-font-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --lp-font-body: "Inter", system-ui, sans-serif;
+  --lp-font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --lp-ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* expo.out */
+
+  /* open water as a plain CSS gradient: the still behind the shader, and the sea that rises in scene 4 */
+  --lp-sea:
+    radial-gradient(ellipse at 22% 18%, rgba(110, 226, 218, 0.55), transparent 55%),
+    radial-gradient(ellipse at 82% 78%, rgba(40, 168, 174, 0.6), transparent 58%),
+    linear-gradient(160deg, #0c8d96, #07656f);
+
+  position: relative;
+  background: var(--lp-navy);
+  color: var(--lp-white);
+  font-family: var(--lp-font-body);
+  /* clip, not hidden: hidden would create a scroll container and break pinning */
+  overflow-x: clip;
+}
+
+/* ---- Type ---------------------------------------------------------------- */
+
+.lp-display {
+  font-family: var(--lp-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  font-size: clamp(2.5rem, 8vw, 7rem);
+  margin: 0;
+}
+
+.lp-label {
+  font-family: var(--lp-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* ---- Scenes -------------------------------------------------------------- */
+
+.lp-scene {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  padding: 96px clamp(20px, 5vw, 72px);
+}
+
+.lp-dark {
+  background: var(--lp-navy);
+  color: var(--lp-white);
+}
+
+.lp-light {
+  background: var(--lp-white);
+  color: var(--lp-navy);
+}
+
+.lp-teal {
+  background: var(--lp-teal);
+  color: var(--lp-navy);
+}
+
+/* ---- Persistent chrome ---------------------------------------------------- */
+
+.lp-logo {
+  position: fixed;
+  top: 20px;
+  left: clamp(16px, 2.5vw, 32px);
+  z-index: 60;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--lp-red);
+  font-family: var(--lp-font-display);
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.lp-pill {
+  position: fixed;
+  top: 14px;
+  right: clamp(16px, 2.5vw, 32px);
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--lp-white);
+  color: var(--lp-navy);
+  font-family: var(--lp-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  /* a hairline and soft shadow keep the white pill visible on white scenes */
+  box-shadow: 0 0 0 1px rgba(5, 11, 31, 0.12), 0 6px 20px rgba(5, 11, 31, 0.18);
+  transition: transform 0.35s var(--lp-ease-out);
+}
+
+.lp-pill:hover {
+  transform: translateY(-1px);
+}
+
+
+
+
+
+/* ---- Custom cursor -------------------------------------------------------- */
+
+.lp-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.2s linear;
+}
+
+.lp-cursor.is-hidden {
+  opacity: 0;
+}
+
+.lp-cursor__ring {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1.5px solid var(--lp-white);
+  border-radius: 50%;
+  transition: transform 0.3s var(--lp-ease-out);
+}
+
+.lp-cursor.is-hover .lp-cursor__ring {
+  transform: scale(2.2);
+}
+
+/* over white sections the ring flips to navy */
+.lp-cursor.is-inverted .lp-cursor__ring {
+  border-color: var(--lp-navy);
+}
+
+.lp-root.lp-has-cursor,
+.lp-root.lp-has-cursor * {
+  cursor: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-cursor__ring,
+  .lp-pill {
+    transition: none;
+  }
+}
+
+/* ---- Masked line reveal (REVEAL in lib/reveal.ts) ------------------------- */
+
+.lp-line {
+  display: block;
+  overflow: hidden;
+  /* room for descenders so the mask does not clip them, without changing the leading */
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+
+.lp-line__inner {
+  display: block;
+  will-change: transform;
+}
+
+.lp-red {
+  color: var(--lp-red);
+}
+
+/* ---- Scene 1: hero --------------------------------------------------------- */
+
+.lp-hero {
+  padding: 0;
+  justify-content: flex-end;
+  align-items: flex-start;
+  overflow: hidden;
+}
+
+.lp-hero__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+/* static globe: the whole hero on mobile and reduced motion, a placeholder while WebGL loads */
+.lp-hero__fallback {
+  position: absolute;
+  top: 12%;
+  right: -34%;
+  height: 56%;
+  width: auto;
+  max-width: none;
+  user-select: none;
+  transition: opacity 0.6s ease;
+}
+
+@media (min-width: 768px) {
+  .lp-hero__fallback {
+    top: 6%;
+    right: -4%;
+    height: 86%;
+  }
+}
+
+.lp-hero__fallback.is-hidden {
+  opacity: 0;
+}
+
+/* keeps the headline legible over the globe */
+.lp-hero__vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 60% at 0% 100%, rgba(5, 11, 31, 0.9), transparent 70%),
+    linear-gradient(to top, rgba(5, 11, 31, 0.55), transparent 40%);
+}
+
+.lp-hero__copy {
+  position: relative;
+  z-index: 3;
+  padding: 0 clamp(20px, 5vw, 72px) clamp(36px, 8vh, 88px);
+}
+
+.lp-hero__eyebrow {
+  margin-bottom: 1.1rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.lp-hero__title {
+  font-size: clamp(2.4rem, 8.2vw, 8.4rem);
+}
+
+/* turns the hero from navy to white as the globe closes in */
+.lp-hero__wash {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: var(--lp-white);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lp-ticker {
+  position: absolute;
+  z-index: 4;
+  top: 92px;
+  left: clamp(16px, 2.5vw, 32px);
+  width: min(300px, 60vw);
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.65);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+}
+
+.lp-ticker__track {
+  display: flex;
+  width: max-content;
+  animation: lp-ticker 36s linear infinite;
+}
+
+.lp-ticker__item {
+  position: relative;
+  padding-right: 2.2rem;
+  white-space: nowrap;
+}
+
+.lp-ticker__item::after {
+  content: "";
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--lp-red);
+  transform: translateY(-50%);
+}
+
+@keyframes lp-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.lp-mininav {
+  position: absolute;
+  z-index: 4;
+  right: clamp(16px, 2.5vw, 32px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.lp-mininav ul {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lp-mininav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.6);
+  transition: color 0.3s ease, transform 0.35s var(--lp-ease-out);
+}
+
+.lp-mininav__item:hover {
+  color: var(--lp-white);
+  transform: translateX(-4px);
+}
+
+.lp-mininav__index {
+  color: var(--lp-red);
+}
+
+@media (max-width: 767px) {
+  .lp-mininav {
+    display: none;
+  }
+}
+
+/* ---- Scene 2: warehouse ---------------------------------------------------- */
+
+.lp-wh {
+  padding: 0;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.lp-wh__copy {
+  position: relative;
+  z-index: 1;
+  max-width: 64vw;
+  padding: 104px clamp(20px, 5vw, 72px) 0;
+}
+
+.lp-wh__eyebrow {
+  margin-bottom: 1rem;
+  color: rgba(5, 11, 31, 0.6);
+}
+
+.lp-wh__title {
+  font-size: clamp(1.9rem, 5.4vw, 5.4rem);
+}
+
+.lp-wh__right {
+  position: absolute;
+  z-index: 1;
+  top: 112px;
+  right: clamp(20px, 5vw, 72px);
+  width: min(32vw, 460px);
+}
+
+.lp-wh__lede {
+  max-width: 42ch;
+  margin: 0 0 1.5rem;
+  font-size: clamp(0.88rem, 1.02vw, 1rem);
+  line-height: 1.55;
+  color: rgba(5, 11, 31, 0.72);
+}
+
+.lp-wh__stats {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lp-wh__stats li {
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(5, 11, 31, 0.14);
+}
+
+.lp-wh__stat-value {
+  display: block;
+  color: var(--lp-navy);
+  font-family: var(--lp-font-display);
+  font-weight: 900;
+  font-size: clamp(2.3rem, 4.4vw, 4.4rem);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-wh__stats .lp-label {
+  display: block;
+  margin-top: 0.4rem;
+  color: rgba(5, 11, 31, 0.6);
+}
+
+/* above the copy, so the lifted container passes in front of the headline */
+.lp-wh__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .lp-wh {
+    min-height: 100svh;
+  }
+
+  .lp-wh__copy {
+    max-width: none;
+    padding-top: 112px;
+  }
+
+  .lp-wh__right {
+    position: relative;
+    top: auto;
+    right: auto;
+    z-index: 1;
+    width: auto;
+    margin: 1.5rem clamp(20px, 5vw, 72px) 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-ticker__track {
+    animation: none;
+  }
+}
+
+/* ---- Hand-off scenes (3 and 4) --------------------------------------------- */
+/*
+ * A handed-over scene overlaps the last screen of the scene before it. Until its own pin
+ * starts it is transparent and invisible, so the previous scene's final frame stays on
+ * screen; at that moment it becomes opaque and shows an identical first frame. The previous
+ * scene then scrolls away unseen underneath.
+ */
+.lp-handoff {
+  margin-top: -100svh;
+}
+
+.lp-scene.lp-handoff {
+  z-index: 2;
+}
+
+#scene-4.lp-handoff {
+  z-index: 3;
+}
+
+.lp-handoff:not([data-live]) {
+  background: transparent;
+  pointer-events: none;
+}
+
+.lp-handoff:not([data-live]) > * {
+  /* visibility, not opacity: GSAP reads a tween's start value from the element's computed opacity */
+  visibility: hidden;
+}
+
+/* ---- Scene 3: truck --------------------------------------------------------- */
+
+.lp-tr {
+  padding: 0;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.lp-tr__eyebrow {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 120px clamp(20px, 5vw, 72px) 0;
+  color: rgba(5, 11, 31, 0.6);
+}
+
+/* giant ghost word behind the truck, drifting the opposite way */
+.lp-tr__watermark {
+  position: absolute;
+  z-index: 0;
+  top: 14%;
+  left: 0;
+  white-space: nowrap;
+  font-family: var(--lp-font-display);
+  font-weight: 900;
+  font-size: clamp(9rem, 30vw, 34rem);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  color: #eceef4;
+  user-select: none;
+  will-change: transform;
+}
+
+.lp-tr__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.lp-tr__panel {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: clamp(250px, 38svh, 380px);
+  display: flex;
+  align-items: center;
+  padding: 0 clamp(20px, 5vw, 72px);
+  color: var(--lp-navy);
+  pointer-events: none;
+}
+
+.lp-tr__cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(16px, 2.4vw, 32px);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* outlined cards on the white page */
+.lp-tr__col {
+  padding: 22px 24px 24px;
+  border: 1px solid rgba(5, 11, 31, 0.12);
+  border-radius: 18px;
+  background: var(--lp-white);
+  box-shadow: 0 14px 40px rgba(5, 11, 31, 0.08);
+}
+
+.lp-tr__icon {
+  display: block;
+  margin-bottom: 16px;
+  color: var(--lp-navy);
+}
+
+.lp-tr__label {
+  margin: 0 0 10px;
+  font-family: var(--lp-font-display);
+  font-weight: 600;
+  font-size: clamp(0.8rem, 1.1vw, 1rem);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--lp-red);
+}
+
+.lp-tr__text {
+  margin: 0;
+  max-width: 30ch;
+  font-size: clamp(0.85rem, 1vw, 0.95rem);
+  line-height: 1.5;
+  color: rgba(5, 11, 31, 0.7);
+}
+
+/* mobile and reduced motion: the loaded truck on its own, then the panel as a normal block */
+.lp-tr.is-static {
+  min-height: 0;
+  padding-bottom: 0;
+}
+
+.lp-tr.is-static .lp-tr__watermark {
+  top: 8%;
+}
+
+.lp-tr.is-static .lp-tr__stage {
+  position: relative;
+  inset: auto;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  margin-top: 4vh;
+}
+
+.lp-tr.is-static .lp-tr__panel {
+  position: relative;
+  height: auto;
+  padding-top: 40px;
+  padding-bottom: 48px;
+}
+
+@media (max-width: 767px) {
+  .lp-tr__cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Scene 4: curved road ----------------------------------------------------- */
+
+.lp-rd {
+  padding: 0;
+  overflow: hidden;
+  justify-content: flex-start;
+}
+
+.lp-rd__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.lp-rd__panels {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.lp-rd__panel {
+  position: absolute;
+  width: min(36vw, 520px);
+  padding-left: 28px;
+}
+
+/* the road runs straight down the middle; the panels sit either side of it, level with the middle of the screen */
+.lp-rd__panel--left {
+  top: 50%;
+  left: clamp(20px, 5vw, 72px);
+  transform: translateY(-50%);
+}
+
+.lp-rd__panel--right {
+  top: 50%;
+  right: clamp(20px, 5vw, 72px);
+  transform: translateY(-50%);
+}
+
+.lp-rd__sea {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: var(--lp-sea);
+  will-change: transform;
+}
+
+/* thin red progress bar: the track is faint, the fill grows from the top */
+.lp-rd__bar {
+  position: absolute;
+  left: 0;
+  top: 0.4em;
+  bottom: 0.4em;
+  width: 3px;
+  background: rgba(229, 23, 31, 0.16);
+}
+
+.lp-rd__bar i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--lp-red);
+  transform-origin: top center;
+}
+
+.lp-rd__title {
+  font-size: clamp(1.9rem, 4.2vw, 4.2rem);
+}
+
+.lp-rd__text {
+  margin: 1.2rem 0 0;
+  max-width: 34ch;
+  font-size: clamp(0.9rem, 1.05vw, 1rem);
+  line-height: 1.55;
+  color: rgba(5, 11, 31, 0.72);
+}
+
+/* mobile and reduced motion: the truck on its road, then the four panels as a list */
+.lp-rd.is-static,
+.lp-rd.is-static .lp-rd__panels {
+  position: relative;
+}
+
+.lp-rd.is-static {
+  min-height: 0;
+  padding: 64px 0;
+}
+
+.lp-rd.is-static .lp-rd__stage {
+  position: relative;
+  inset: auto;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+.lp-rd.is-static .lp-rd__panels {
+  inset: auto;
+  display: grid;
+  gap: 48px;
+  padding: 32px clamp(20px, 5vw, 72px) 0;
+}
+
+.lp-rd.is-static .lp-rd__panel {
+  position: relative;
+  inset: auto;
+  width: auto;
+  transform: none;
+}
+
+.lp-rd.is-static .lp-rd__bar {
+  opacity: 1;
+}
+
+.lp-rd.is-static .lp-rd__bar i {
+  transform: none;
+}
+
+/* ---- Hand-off stacking: each handed-over scene sits above the one it covers ---- */
+
+#scene-2.lp-handoff {
+  z-index: 1;
+}
+
+#scene-5.lp-handoff {
+  z-index: 4;
+}
+
+#scene-6.lp-handoff {
+  z-index: 5;
+}
+
+/* ---- Water (scenes 5 and 6) ------------------------------------------------------- */
+
+.lp-ocean {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #0f8f98;
+}
+
+.lp-ocean__still,
+.lp-ocean__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  transition: opacity 0.6s ease;
+}
+
+.lp-ocean__still {
+  background: var(--lp-sea);
+}
+
+.lp-ocean__still.is-hidden {
+  opacity: 0;
+}
+
+/* ---- Scene 5: ocean ----------------------------------------------------------------- */
+
+/* white until the water fades in, so the hand-off from scene 4 is seamless */
+.lp-oc {
+  padding: 0;
+  overflow: hidden;
+  justify-content: flex-start;
+  background: var(--lp-white);
+  color: var(--lp-white);
+}
+
+.lp-oc__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.lp-oc__cards {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* frosted glass: blur, a 1px white/30 hairline, a teal tint */
+.lp-oc__card {
+  position: absolute;
+  width: min(30vw, 360px);
+  padding: 22px 24px 26px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  background: rgba(25, 181, 176, 0.2);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 18px 50px rgba(2, 42, 48, 0.25);
+}
+
+.lp-oc__card--left {
+  left: clamp(20px, 6vw, 96px);
+}
+
+.lp-oc__card--right {
+  right: clamp(20px, 6vw, 96px);
+}
+
+.lp-oc__tag {
+  margin-bottom: 14px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.lp-oc__text {
+  margin: 0;
+  font-family: var(--lp-font-display);
+  font-weight: 600;
+  font-size: clamp(1rem, 1.5vw, 1.4rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--lp-white);
+}
+
+/* mobile and reduced motion: still water, the ship mid-frame, the four cards in a column */
+.lp-oc.is-static {
+  min-height: 0;
+  padding: 56px clamp(20px, 5vw, 72px);
+  background: #0f8f98;
+}
+
+.lp-oc.is-static .lp-oc__stage {
+  position: relative;
+  inset: auto;
+  height: auto;
+  aspect-ratio: 16 / 10;
+}
+
+.lp-oc.is-static .lp-oc__cards {
+  position: relative;
+  inset: auto;
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.lp-oc.is-static .lp-oc__card {
+  position: relative;
+  inset: auto;
+  top: auto !important;
+  width: auto;
+  opacity: 1;
+}
+
+/* ---- Scene 6: air ------------------------------------------------------------------- */
+
+.lp-air {
+  padding: 0;
+  overflow: hidden;
+  justify-content: flex-start;
+  background: var(--lp-white);
+  color: var(--lp-navy);
+}
+
+.lp-air__copy {
+  position: absolute;
+  z-index: 1;
+  top: 15svh;
+  left: clamp(20px, 5vw, 72px);
+}
+
+.lp-air__label {
+  margin-bottom: 1.1rem;
+  color: rgba(5, 11, 31, 0.6);
+}
+
+.lp-air__title {
+  font-size: clamp(2.4rem, 7.4vw, 7.6rem);
+}
+
+/* above the headline, so the wings cover some of its letters */
+.lp-air__plane {
+  position: absolute;
+  z-index: 2;
+  left: 29vw;
+  top: 50%;
+  width: min(64vw, 1120px);
+  height: auto;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+}
+
+.lp-air.is-static {
+  min-height: 0;
+  padding: 64px clamp(20px, 5vw, 72px);
+}
+
+.lp-air.is-static .lp-air__copy {
+  position: relative;
+  inset: auto;
+}
+
+.lp-air.is-static .lp-air__plane {
+  position: relative;
+  inset: auto;
+  left: auto;
+  top: auto;
+  width: 100%;
+  margin-top: 24px;
+}
+
+/* persistent UI turns white while the water is behind it */
+
+
+
+
+/* ---- Scene 7: insights ----------------------------------------------------------- */
+
+.lp-in {
+  padding: 0;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.lp-in__inner {
+  width: 100%;
+  padding: 104px clamp(20px, 5vw, 72px) 48px;
+}
+
+.lp-in__eyebrow {
+  margin-bottom: 1.1rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.lp-in__title {
+  font-size: clamp(2.2rem, 6.2vw, 6.4rem);
+}
+
+.lp-in__row {
+  display: block;
+}
+
+.lp-in__hot {
+  background: linear-gradient(90deg, #ff9a1f 0%, #f4511e 45%, #e5171f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.lp-in__list {
+  margin: clamp(24px, 4.5vh, 48px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lp-in__row-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.lp-in__row-item:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.lp-in__link {
+  display: grid;
+  grid-template-columns: minmax(104px, 160px) 1fr auto;
+  align-items: baseline;
+  gap: clamp(12px, 3vw, 40px);
+  padding: clamp(14px, 2.4vh, 22px) 0;
+}
+
+.lp-in__date,
+.lp-in__tag {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.lp-in__item {
+  margin: 0;
+  font-family: var(--lp-font-body);
+  font-weight: 500;
+  font-size: clamp(1rem, 1.55vw, 1.45rem);
+  line-height: 1.25;
+  letter-spacing: -0.005em;
+}
+
+.lp-in__tag {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.lp-in__row-item:hover .lp-in__item,
+.lp-in__row-item:hover .lp-in__date,
+.lp-in__row-item:hover .lp-in__tag {
+  color: var(--lp-red);
+}
+
+.lp-in__row-item:hover .lp-in__tag {
+  border-color: var(--lp-red);
+}
+
+@media (max-width: 767px) {
+  .lp-in {
+    min-height: 0;
+  }
+
+  .lp-in__inner {
+    padding: 96px clamp(20px, 5vw, 72px) 64px;
+  }
+
+  .lp-in__link {
+    grid-template-columns: 1fr auto;
+    row-gap: 6px;
+  }
+
+  .lp-in__date {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---- Scene 8: FAQ ----------------------------------------------------------------- */
+
+.lp-faq {
+  padding: 0;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.lp-faq__inner {
+  position: relative;
+  z-index: 1;
+  padding: 110px clamp(20px, 5vw, 72px) 0;
+}
+
+.lp-faq__eyebrow {
+  margin-bottom: 0.6rem;
+  color: rgba(5, 11, 31, 0.6);
+}
+
+.lp-faq__title {
+  font-size: clamp(3rem, 12.2vw, 14rem);
+  line-height: 0.86;
+  letter-spacing: -0.045em;
+  color: var(--lp-red);
+}
+
+.lp-faq__list {
+  max-width: 980px;
+  margin: clamp(28px, 5vh, 56px) 0 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.lp-faq__item {
+  border-top: 1px solid rgba(5, 11, 31, 0.14);
+}
+
+.lp-faq__item:last-child {
+  border-bottom: 1px solid rgba(5, 11, 31, 0.14);
+}
+
+.lp-faq__heading {
+  margin: 0;
+}
+
+.lp-faq__trigger {
+  display: grid;
+  grid-template-columns: 48px 1fr 28px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 22px 0;
+  border: 0;
+  background: none;
+  color: var(--lp-navy);
+  text-align: left;
+  cursor: pointer;
+}
+
+.lp-faq__trigger:focus-visible {
+  outline: 2px solid var(--lp-red);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.lp-faq__index {
+  font-family: var(--lp-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--lp-red);
+}
+
+.lp-faq__question {
+  font-family: var(--lp-font-display);
+  font-weight: 600;
+  font-size: clamp(0.95rem, 1.45vw, 1.35rem);
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: -0.005em;
+  transition: transform 0.4s var(--lp-ease-out);
+}
+
+.lp-faq__trigger:hover .lp-faq__question {
+  transform: translateX(6px);
+}
+
+/* plus that turns into a minus */
+.lp-faq__icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  justify-self: end;
+}
+
+.lp-faq__icon::before,
+.lp-faq__icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 18px;
+  height: 2px;
+  background: var(--lp-navy);
+  transition: transform 0.4s var(--lp-ease-out);
+}
+
+.lp-faq__icon::after {
+  transform: rotate(90deg);
+}
+
+.lp-faq__item[data-open="true"] .lp-faq__icon::after {
+  transform: rotate(0deg);
+}
+
+/* height animates through the grid row: 0fr to 1fr */
+.lp-faq__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows 0.5s var(--lp-ease-out), visibility 0s linear 0.5s;
+}
+
+.lp-faq__panel[data-open="true"] {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition: grid-template-rows 0.5s var(--lp-ease-out), visibility 0s;
+}
+
+.lp-faq__panel-inner {
+  overflow: hidden;
+  padding-left: 60px;
+}
+
+.lp-faq__answer {
+  max-width: 62ch;
+  margin: 0;
+  padding: 0 0 26px;
+  font-size: clamp(0.92rem, 1.1vw, 1.05rem);
+  line-height: 1.6;
+  color: rgba(5, 11, 31, 0.72);
+}
+
+/* the wordmark is a backdrop: large, pale, cut off by the bottom of the page */
+.lp-faq__wordmark {
+  position: relative;
+  z-index: 0;
+  margin-top: clamp(40px, 8vh, 96px);
+  height: 0.58em;
+  font-family: var(--lp-font-display);
+  font-weight: 900;
+  font-size: 13.2vw;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #eceef4;
+  user-select: none;
+  overflow: visible;
+}
+
+@media (max-width: 767px) {
+  .lp-faq {
+    min-height: 0;
+  }
+
+  .lp-faq__trigger {
+    grid-template-columns: 34px 1fr 24px;
+    padding: 18px 0;
+  }
+
+  .lp-faq__panel-inner {
+    padding-left: 46px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-faq__panel,
+  .lp-faq__panel[data-open="true"],
+  .lp-faq__icon::before,
+  .lp-faq__icon::after,
+  .lp-faq__question,
+  .lp-in__link {
+    transition: none;
+  }
+}
+
+/* ---- Scene 9: final call to action ------------------------------------------------- */
+
+.lp-cta {
+  padding: 0;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.lp-cta__inner {
+  padding: 120px clamp(20px, 5vw, 72px) 96px;
+}
+
+.lp-cta__title {
+  font-size: clamp(3rem, 11.4vw, 11.6rem);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+}
+
+.lp-cta__row {
+  display: block;
+}
+
+.lp-cta__line {
+  margin: clamp(28px, 5vh, 52px) 0 0;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.lp-cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.lp-cta__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 26px;
+  border-radius: 999px;
+  font-family: var(--lp-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: transform 0.35s var(--lp-ease-out), background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.lp-cta__btn--primary {
+  background: var(--lp-white);
+  color: var(--lp-navy);
+}
+
+.lp-cta__btn--primary span {
+  display: inline-block;
+  transition: transform 0.35s var(--lp-ease-out);
+}
+
+.lp-cta__btn--primary:hover {
+  transform: translateY(-2px);
+}
+
+.lp-cta__btn--primary:hover span {
+  transform: translateX(4px);
+}
+
+.lp-cta__btn--ghost {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: var(--lp-white);
+}
+
+.lp-cta__btn--ghost:hover {
+  border-color: var(--lp-white);
+  transform: translateY(-2px);
+}
+
+.lp-cta__btn:focus-visible {
+  outline: 2px solid var(--lp-red);
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .lp-cta {
+    min-height: 0;
+  }
+
+  .lp-cta__title {
+    font-size: clamp(2.2rem, 10.2vw, 5rem);
+  }
+
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-cta__btn,
+  .lp-cta__btn--primary span {
+    transition: none;
+  }
+}
+
+/* the logo turns white while the water is behind it */
+.lp-logo {
+  transition: color 0.3s ease;
+}
+
+.lp-root[data-chrome="water"] .lp-logo {
+  color: var(--lp-white);
+}
+
+
+/* ---- Clouds (scenes 5 and 6) --------------------------------------------------------- */
+
+.lp-clouds {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.lp-clouds img {
+  position: absolute;
+  height: auto;
+  max-width: none;
+  user-select: none;
+  will-change: transform;
+}
+
+/* in scene 6 the plane flies above the clouds */
+.lp-air .lp-clouds {
+  z-index: 1;
+}
+
+/* foam riding on the front of the rising sea */
+.lp-rd__foam {
+  position: absolute;
+  left: -10%;
+  top: -118px;
+  width: 120%;
+  height: 140px;
+  pointer-events: none;
+}

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.modules.users.models import User
+from app.modules.users.models import User, UserRole
 
 
 class UserRepository:
@@ -19,8 +19,15 @@ class UserRepository:
             .first()
         )
 
+    def list_active_by_roles(self, roles: list[UserRole]) -> list[User]:
+        return (
+            self.db.query(User)
+            .filter(User.role.in_(roles))
+            .filter(User.is_active.is_(True))
+            .all()
+        )
+
     def create(self, user: User) -> User:
         self.db.add(user)
-        self.db.commit()
-        self.db.refresh(user)
+        self.db.flush()
         return user

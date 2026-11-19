@@ -22,6 +22,7 @@ const STATUS_TONE: Record<string, "neutral" | "accent" | "flow" | "danger"> = {
   PARTIALLY_RECEIVED: "accent",
   RECEIVED: "flow",
   CLOSED: "neutral",
+  CANCELLED: "danger",
 };
 
 export function POList() {
@@ -78,6 +79,10 @@ export function POList() {
             { header: "Supplier", accessor: (po) => supplierMap.get(po.supplier_id) ?? "Unknown" },
             { header: "Warehouse", accessor: (po) => warehouseMap.get(po.warehouse_id) ?? "Unknown" },
             { header: "Items", accessor: (po) => <span className="font-mono">{po.items.length}</span> },
+            {
+              header: "Expected",
+              accessor: (po) => <span className="font-mono text-text-muted">{po.expected_date ?? "—"}</span>,
+            },
             { header: "Status", accessor: (po) => <Badge tone={STATUS_TONE[po.status]}>{po.status}</Badge> },
             {
               header: "PO Number",

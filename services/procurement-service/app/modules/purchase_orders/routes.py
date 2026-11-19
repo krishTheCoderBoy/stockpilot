@@ -3,14 +3,22 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import require_role
-from app.modules.purchase_orders.schemas import PurchaseOrderCreate, PurchaseOrderOut, ReceiveRequest
+from app.modules.purchase_orders.models import POStatus
+from app.modules.purchase_orders.schemas import PurchaseOrderCreate, PurchaseOrderOut, PurchaseOrderSummary, ReceiveRequest
 from app.modules.purchase_orders.service import PurchaseOrderService
 router=APIRouter(prefix="/purchase-orders",tags=["purchase-orders"])
 WRITE=("ADMIN","PROCUREMENT_MANAGER"); READ=("ADMIN","INVENTORY_MANAGER","PROCUREMENT_MANAGER"); APPROVE=("ADMIN",)
 @router.post("/",response_model=PurchaseOrderOut,status_code=201)
 def create_po(payload:PurchaseOrderCreate,request:Request,db:Session=Depends(get_db),current=Depends(require_role(*WRITE))): return PurchaseOrderService(db).create_po(payload,current.id,request.headers.get("authorization",""))
 @router.get("/",response_model=list[PurchaseOrderOut])
-def list_pos(skip:int=0,limit:int=50,db:Session=Depends(get_db),current=Depends(require_role(*READ))): return PurchaseOrderService(db).list_pos(skip,limit)
+def list_pos(skip:int=0,limit:int=50,status:POStatus|None=None,db:Session=Depends(get_db),current=Depends(require_role(*READ))): return PurchaseOrderService(db).list_pos(skip,limit,status)
+# Declared before /{po_id} so "search", "summary" and "by-number" are not parsed as a PO UUID.
+@router.get("/search",response_model=list[PurchaseOrderOut])
+def search_pos(q:str,limit:int=20,db:Session=Depends(get_db),current=Depends(require_role(*READ))): return PurchaseOrderService(db).search_pos(q,limit)
+@router.get("/summary",response_model=PurchaseOrderSummary)
+def po_summary(db:Session=Depends(get_db),current=Depends(require_role(*READ))): return PurchaseOrderService(db).summary()
+@router.get("/by-number/{po_number}",response_model=PurchaseOrderOut)
+def get_po_by_number(po_number:str,db:Session=Depends(get_db),current=Depends(require_role(*READ))): return PurchaseOrderService(db).get_po_by_number(po_number)
 @router.get("/{po_id}",response_model=PurchaseOrderOut)
 def get_po(po_id:uuid.UUID,db:Session=Depends(get_db),current=Depends(require_role(*READ))): return PurchaseOrderService(db).get_po(po_id)
 @router.post("/{po_id}/submit",response_model=PurchaseOrderOut)
@@ -21,5 +29,7 @@ def approve_po(po_id:uuid.UUID,db:Session=Depends(get_db),current=Depends(requir
 def mark_ordered(po_id:uuid.UUID,db:Session=Depends(get_db),current=Depends(require_role(*WRITE))): return PurchaseOrderService(db).mark_ordered(po_id)
 @router.post("/{po_id}/close",response_model=PurchaseOrderOut)
 def close_po(po_id:uuid.UUID,db:Session=Depends(get_db),current=Depends(require_role(*WRITE))): return PurchaseOrderService(db).close(po_id)
+@router.post("/{po_id}/cancel",response_model=PurchaseOrderOut)
+def cancel_po(po_id:uuid.UUID,db:Session=Depends(get_db),current=Depends(require_role(*APPROVE))): return PurchaseOrderService(db).cancel(po_id,current.id)
 @router.post("/{po_id}/receive",response_model=PurchaseOrderOut)
 def receive_po(po_id:uuid.UUID,payload:ReceiveRequest,db:Session=Depends(get_db),current=Depends(require_role(*WRITE))): return PurchaseOrderService(db).receive(po_id,payload,current.id)

@@ -8,6 +8,7 @@ import {
   ArrowLeftRight,
   Truck,
   ClipboardList,
+  TrendingUp,
   Settings,
   ChevronsLeft,
 } from "lucide-react";
@@ -28,6 +29,7 @@ const NAV_SECTIONS = [
     items: [
       { to: "/suppliers", label: "Suppliers", icon: Truck },
       { to: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
+      { to: "/planning", label: "Planning", icon: TrendingUp },
     ],
   },
   {

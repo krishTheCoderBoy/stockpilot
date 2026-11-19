@@ -23,6 +23,7 @@ export function POForm({ suppliers, warehouses, onSuccess }: Props) {
   const [supplierId, setSupplierId] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [notes, setNotes] = useState("");
+  const [expectedDate, setExpectedDate] = useState("");
   const [items, setItems] = useState<LineItem[]>([{ product_id: "", ordered_quantity: "", unit_price: "" }]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -59,6 +60,7 @@ export function POForm({ suppliers, warehouses, onSuccess }: Props) {
         supplier_id: supplierId,
         warehouse_id: warehouseId,
         notes: notes || null,
+        expected_date: expectedDate || null,
         items: items.map((item) => ({
           product_id: item.product_id,
           ordered_quantity: Number(item.ordered_quantity),
@@ -157,6 +159,14 @@ export function POForm({ suppliers, warehouses, onSuccess }: Props) {
           </div>
         ))}
       </div>
+
+      <Input
+        id="expected-date"
+        label="Expected delivery date"
+        type="date"
+        value={expectedDate}
+        onChange={(e) => setExpectedDate(e.target.value)}
+      />
 
       <Input id="notes" label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
 

@@ -21,6 +21,10 @@ def _create_database_if_missing(target: URL) -> None:
                 connection.exec_driver_sql(f"CREATE DATABASE {identifier}")
     finally:
         engine.dispose()
+def _insertable_columns(table) -> list[str]:
+    # Generated columns (search_vector) are computed by Postgres, reject explicit values,
+    # and do not exist in the monolith, so they are excluded from comparison and copy.
+    return sorted(column.name for column in table.columns if column.computed is None)
 def copy_owned_tables(service_root: Path, table_names: list[str]) -> None:
     parser = argparse.ArgumentParser(description="Copy only this service's owned tables from the shared database.")
     parser.add_argument("--source-url", required=True, help="Existing shared PostgreSQL DATABASE_URL")
@@ -58,11 +62,24 @@ def copy_owned_tables(service_root: Path, table_names: list[str]) -> None:
             for name in table_names:
                 source_table = source_metadata.tables[name]
                 destination = target_metadata.tables[name]
-                source_columns = {column.name for column in source_table.columns}
-                target_columns = {column.name for column in destination.columns}
-                if source_columns != target_columns:
-                    raise RuntimeError(f"Source and target columns differ for {name}")
-                result = source_connection.execution_options(stream_results=True).execute(select(source_table))
+                source_columns = _insertable_columns(source_table)
+                target_columns = _insertable_columns(destination)
+                # Services add columns after the split (e.g. purchase_orders.expected_date).
+                # That is fine only if the monolith's rows can still be inserted without them.
+                unknown = set(source_columns) - set(target_columns)
+                required_extra = [
+                    column for column in target_columns
+                    if column not in source_columns
+                    and not destination.c[column].nullable
+                    and destination.c[column].server_default is None
+                ]
+                if unknown or required_extra:
+                    raise RuntimeError(
+                        f"Source and target columns are incompatible for {name}: "
+                        f"unknown in target={sorted(unknown)}, required but missing in source={sorted(required_extra)}"
+                    )
+                query = select(*(source_table.c[column] for column in source_columns))
+                result = source_connection.execution_options(stream_results=True).execute(query)
                 while rows := result.fetchmany(1000):
                     batch = [dict(row._mapping) for row in rows]
                     target_connection.execute(insert(destination), batch)

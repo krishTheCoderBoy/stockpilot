@@ -35,7 +35,7 @@ export function Table<T>({ columns, data, keyExtractor, isLoading, emptyState }:
                 <tr key={i} className="border-b border-border last:border-0">
                   {columns.map((col) => (
                     <td key={col.header} className="px-4 py-3">
-                      <div className="h-4 w-24 animate-pulse rounded-sm bg-border/60" />
+                      <div className="h-4 w-24 animate-pulse motion-reduce:animate-none rounded-sm bg-border/60" />
                     </td>
                   ))}
                 </tr>

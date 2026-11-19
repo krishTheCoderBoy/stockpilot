@@ -5,7 +5,16 @@ import { Alert } from "../../components/ui/Alert";
 import { inventoryApi, extractErrorMessage } from "../../lib/api";
 import { type Product, type Warehouse } from "../../lib/queries";
 
-const MOVEMENT_TYPES = ["RECEIVE", "ISSUE", "ADJUSTMENT_INCREASE", "ADJUSTMENT_DECREASE"] as const;
+const MOVEMENT_TYPES = ["RECEIVE", "ISSUE", "ADJUSTMENT_INCREASE", "ADJUSTMENT_DECREASE", "DAMAGED", "RETURNED"] as const;
+
+const MOVEMENT_TYPE_LABELS: Record<(typeof MOVEMENT_TYPES)[number], string> = {
+  RECEIVE: "Receive",
+  ISSUE: "Issue (demand)",
+  ADJUSTMENT_INCREASE: "Adjustment — increase",
+  ADJUSTMENT_DECREASE: "Adjustment — decrease",
+  DAMAGED: "Damaged / write-off (stock out)",
+  RETURNED: "Returned (stock in)",
+};
 
 interface Props {
   products: Product[];
@@ -92,7 +101,7 @@ export function MovementForm({ products, warehouses, onSuccess }: Props) {
           className="rounded-sm bg-surface border border-border px-3 py-2 text-sm text-text outline-none focus:border-accent"
         >
           {MOVEMENT_TYPES.map((t) => (
-            <option key={t} value={t}>{t}</option>
+            <option key={t} value={t}>{MOVEMENT_TYPE_LABELS[t]}</option>
           ))}
         </select>
       </div>

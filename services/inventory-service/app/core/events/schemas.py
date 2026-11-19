@@ -61,4 +61,6 @@ class StockLow(DomainEvent):
     product_id: uuid.UUID
     warehouse_id: uuid.UUID
     on_hand_quantity: Decimal
+    # Optional so older producers/consumers of this event keep working.
+    available_quantity: Decimal | None = None
     reorder_point: Decimal

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -18,17 +19,26 @@ import { SuppliersList } from "./pages/suppliers/SuppliersList";
 import { POList } from "./pages/purchase-orders/POList";
 import { PODetail } from "./pages/purchase-orders/PODetail";
 import { ThemeProvider } from "./context/ThemeContext";
-import { Landing } from "./pages/Landing";
 import { Profile } from "./pages/profile/Profile";
 import { Settings } from "./pages/settings/Settings";
+import { PlanningPage } from "./pages/planning/PlanningPage";
+import { ChatProvider } from "./context/ChatContext";
 import { ForgotUsername } from "./pages/auth/ForgotUsername";
 
 
 const queryClient = new QueryClient();
 
+// The landing page (GSAP, Lenis, three.js) is a separate chunk, so the dashboard never pays for it.
+const Landing = lazy(() => import("./pages/landing/Landing").then((m) => ({ default: m.Landing })));
+
 function RootRoute() {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />;
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#050b1f" }} />}>
+      <Landing />
+    </Suspense>
+  );
 }
 
 export default function App() {
@@ -36,6 +46,7 @@ export default function App() {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <ChatProvider>
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<RootRoute />} />
@@ -118,6 +129,14 @@ export default function App() {
                 }
               />
               <Route
+                path="/planning"
+                element={
+                  <ProtectedRoute>
+                    <PlanningPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/profile"
                 element={
                   <ProtectedRoute>
@@ -135,6 +154,7 @@ export default function App() {
               />
             </Routes>
           </BrowserRouter>
+          </ChatProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>

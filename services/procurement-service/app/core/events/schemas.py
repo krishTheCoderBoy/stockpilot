@@ -32,3 +32,10 @@ class PurchaseOrderReceived(BaseModel):
     occurred_at: datetime
     po_id: uuid.UUID
     fully_received: bool
+class PurchaseOrderCancelled(BaseModel):
+    event_id: uuid.UUID
+    event_type: Literal["PurchaseOrderCancelled"] = "PurchaseOrderCancelled"
+    occurred_at: datetime
+    po_id: uuid.UUID
+    po_number: str
+    cancelled_by: uuid.UUID

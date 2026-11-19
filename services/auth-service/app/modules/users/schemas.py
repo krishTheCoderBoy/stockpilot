@@ -31,3 +31,13 @@ class UserOut(BaseModel):
 class VerifyOtpRequest(BaseModel):
     email: EmailStr
     otp_code: str
+
+
+class RecipientOut(BaseModel):
+    """Minimal projection for other services: enough to address an email, nothing more."""
+    id: uuid.UUID
+    email: EmailStr
+    full_name: str
+    role: UserRole
+
+    model_config = ConfigDict(from_attributes=True)

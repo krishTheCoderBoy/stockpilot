@@ -7,7 +7,8 @@ down_revision = None
 branch_labels = None
 depends_on = None
 def upgrade() -> None:
-    status = postgresql.ENUM("DRAFT", "SUBMITTED", "APPROVED", "ORDERED", "PARTIALLY_RECEIVED", "RECEIVED", "CLOSED", name="po_status")
+    # create_type=False: the type is created explicitly below, and create_table would otherwise try to create it a second time.
+    status = postgresql.ENUM("DRAFT", "SUBMITTED", "APPROVED", "ORDERED", "PARTIALLY_RECEIVED", "RECEIVED", "CLOSED", name="po_status", create_type=False)
     status.create(op.get_bind(), checkfirst=True)
     op.create_table("suppliers", sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True), sa.Column("code", sa.String(), nullable=False), sa.Column("name", sa.String(), nullable=False), sa.Column("contact_person", sa.String()), sa.Column("email", sa.String()), sa.Column("phone", sa.String()), sa.Column("address", sa.Text()), sa.Column("lead_time_days", sa.Integer()), sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()))
     op.create_index("ix_suppliers_code", "suppliers", ["code"], unique=True)

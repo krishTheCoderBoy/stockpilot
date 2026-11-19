@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, Search, Sun, Moon } from "lucide-react";
+import { Bell, MessageSquare, Search, Sun, Moon } from "lucide-react";
 import { Dropdown } from "../ui/Dropdown";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { api } from "../../lib/api";
+import { inventoryApi } from "../../lib/api";
 
 interface TopbarProps {
   breadcrumb: string;
   onOpenCommandPalette: () => void;
+  onOpenChat: () => void;
 }
 
 interface Notification {
@@ -24,7 +25,7 @@ const ROLE_LABEL: Record<string, string> = {
   PROCUREMENT_MANAGER: "Procurement Manager",
 };
 
-export function Topbar({ breadcrumb }: TopbarProps) {
+export function Topbar({ breadcrumb, onOpenChat }: TopbarProps) {
   const { theme, toggleTheme } = useTheme();
   const { role, logout } = useAuth();
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export function Topbar({ breadcrumb }: TopbarProps) {
 
   const { data: notifications } = useQuery<Notification[]>({
     queryKey: ["notifications"],
-    queryFn: async () => (await api.get("/dashboard/notifications")).data,
+    queryFn: async () => (await inventoryApi.get("/dashboard/notifications")).data,
     refetchInterval: 60000,
   });
 
@@ -55,6 +56,15 @@ export function Topbar({ breadcrumb }: TopbarProps) {
           <Search size={14} />
           <span>Search</span>
           <kbd className="font-mono text-[10px] text-text-muted/70">⌘K</kbd>
+        </button>
+
+        <button
+          onClick={onOpenChat}
+          aria-label="Open assistant"
+          title="Ask the assistant (Ctrl/⌘+J)"
+          className="text-text-muted transition-colors hover:text-text"
+        >
+          <MessageSquare size={18} />
         </button>
 
         <button onClick={toggleTheme} aria-label="Toggle theme" className="text-text-muted hover:text-text transition-colors">

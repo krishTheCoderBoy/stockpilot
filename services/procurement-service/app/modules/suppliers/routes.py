@@ -35,6 +35,18 @@ def list_suppliers(
     return service.list_suppliers(skip, limit)
 
 
+# Declared before /{supplier_id} so "search" is not parsed as a supplier UUID.
+@router.get("/search", response_model=list[SupplierOut])
+def search_suppliers(
+    q: str,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role(*READ_ROLES)),
+):
+    service = SupplierService(db)
+    return service.search_suppliers(q, limit)
+
+
 @router.get("/{supplier_id}", response_model=SupplierOut)
 def get_supplier(
     supplier_id: uuid.UUID,

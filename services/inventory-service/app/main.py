@@ -14,6 +14,8 @@ from app.modules.warehouses.routes import router as warehouses_router
 from app.modules.inventory.routes import router as inventory_router
 from app.modules.inventory_movements.routes import router as movements_router
 from app.modules.inventory_batches.routes import router as batches_router
+from app.modules.inventory_reservations.routes import router as reservations_router
+from app.modules.dashboard.routes import router as dashboard_router
 
 app = FastAPI(
     title="StockPilot Inventory Service",
@@ -38,6 +40,8 @@ app.include_router(warehouses_router)
 app.include_router(inventory_router)
 app.include_router(movements_router)
 app.include_router(batches_router)
+app.include_router(reservations_router)
+app.include_router(dashboard_router)
 
 
 @app.get("/health")

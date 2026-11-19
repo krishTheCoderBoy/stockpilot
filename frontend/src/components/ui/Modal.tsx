@@ -7,9 +7,11 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  // Tailwind max-width class; most dialogs are small forms, charts need more room.
+  widthClass?: string;
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, widthClass = "max-w-md" }: ModalProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -30,7 +32,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="modal-title"
-            className="relative w-full max-w-md rounded-md border border-border bg-surface/95 backdrop-blur-md p-6 shadow-2xl"
+            className={`relative w-full ${widthClass} max-h-[90vh] overflow-y-auto rounded-md border border-border bg-surface/95 backdrop-blur-md p-6 shadow-2xl`}
           >
             <div className="mb-4 flex items-center justify-between">
               <h2 id="modal-title" className="text-base font-medium text-text">

@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -12,11 +12,19 @@ from app.core.cache import invalidate_cache
 from app.modules.inventory_batches.models import InventoryBatch
 from app.modules.inventory_batches.repository import BatchRepository
 from app.core.events.publisher import publish_event
-from app.core.events.schemas import InventoryUpdated, StockLow
-from app.modules.products.models import Product
+from app.core.events.schemas import InventoryTransferred, InventoryUpdated
+from app.modules.inventory.alerts import publish_stock_low_if_needed
+from app.modules.inventory_reservations.service import ReservationService
 
-INCREASE_TYPES = {MovementType.RECEIVE, MovementType.ADJUSTMENT_INCREASE, MovementType.TRANSFER_IN}
-DECREASE_TYPES = {MovementType.ISSUE, MovementType.ADJUSTMENT_DECREASE, MovementType.TRANSFER_OUT}
+INCREASE_TYPES = {MovementType.RECEIVE, MovementType.ADJUSTMENT_INCREASE, MovementType.TRANSFER_IN, MovementType.RETURNED}
+DECREASE_TYPES = {MovementType.ISSUE, MovementType.ADJUSTMENT_DECREASE, MovementType.TRANSFER_OUT, MovementType.DAMAGED}
+# Stock that physically leaves a batch. Without this a damaged unit would stay counted in
+# its batch and still show up in expiry alerts.
+BATCH_CONSUMING_TYPES = {MovementType.ISSUE, MovementType.DAMAGED}
+
+
+DEFAULT_DEMAND_WINDOW_DAYS = 180
+MAX_DEMAND_WINDOW_DAYS = 731
 
 
 class MovementService:
@@ -25,6 +33,7 @@ class MovementService:
         self.inventory_repo = InventoryRepository(db)
         self.movement_repo = MovementRepository(db)
         self.batch_repo = BatchRepository(db)
+        self.reservation_service = ReservationService(db)
 
     def _apply_single_movement(
         self,
@@ -38,13 +47,26 @@ class MovementService:
         performed_by,
         notes: str | None,
         expiry_date: date | None = None,
+        reservation_id: uuid.UUID | None = None,
     ) -> InventoryMovement:
         if quantity <= 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Quantity must be positive"
             )
 
-        inventory = self.inventory_repo.get_or_create(product_id, warehouse_id)
+        if reservation_id is not None and movement_type != MovementType.ISSUE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only an ISSUE can fulfil a reservation",
+            )
+
+        # Lock before reading quantities so concurrent movements cannot both pass the guard.
+        inventory = self.inventory_repo.get_or_create(product_id, warehouse_id, for_update=True)
+        reservation = (
+            self.reservation_service.lock_for_fulfilment(reservation_id, product_id, warehouse_id, quantity)
+            if reservation_id is not None
+            else None
+        )
 
         if movement_type in INCREASE_TYPES:
             if movement_type == MovementType.RECEIVE and unit_cost is not None:
@@ -68,14 +90,17 @@ class MovementService:
                 ))
 
         elif movement_type in DECREASE_TYPES:
-            if inventory.on_hand_quantity < quantity:
+            # Stock out is limited by *available*, so reserved stock cannot be taken by an
+            # unrelated movement. An ISSUE that fulfils a reservation may use its own hold.
+            own_hold = reservation.quantity if reservation else Decimal("0")
+            if inventory.available_quantity + own_hold < quantity:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Insufficient stock for this movement",
+                    detail="Insufficient available stock for this movement",
                 )
             inventory.on_hand_quantity -= quantity
 
-            if movement_type == MovementType.ISSUE:
+            if movement_type in BATCH_CONSUMING_TYPES:
                 remaining_to_consume = quantity
                 for batch in self.batch_repo.get_consumable_batches(product_id, warehouse_id):
                     if remaining_to_consume <= 0:
@@ -87,6 +112,8 @@ class MovementService:
         inventory.last_movement_at = datetime.now(timezone.utc)
 
         movement = InventoryMovement(
+            # Assigned up front so the reservation can reference it within this flush.
+            id=uuid.uuid4(),
             product_id=product_id,
             warehouse_id=warehouse_id,
             movement_type=movement_type,
@@ -98,6 +125,8 @@ class MovementService:
             notes=notes,
         )
         self.movement_repo.add(movement)
+        if reservation is not None:
+            self.reservation_service.complete_fulfilment(reservation, inventory, quantity, movement.id)
         publish_event(InventoryUpdated(
             event_id=uuid.uuid4(),
             occurred_at=datetime.now(timezone.utc),
@@ -106,16 +135,7 @@ class MovementService:
             on_hand_quantity=inventory.on_hand_quantity,
         ))
 
-        product = self.db.query(Product).filter(Product.id == product_id).first()
-        if product and inventory.on_hand_quantity <= product.reorder_point:
-            publish_event(StockLow(
-                event_id=uuid.uuid4(),
-                occurred_at=datetime.now(timezone.utc),
-                product_id=product_id,
-                warehouse_id=warehouse_id,
-                on_hand_quantity=inventory.on_hand_quantity,
-                reorder_point=product.reorder_point,
-            ))
+        publish_stock_low_if_needed(self.db, inventory)
         return movement
 
 
@@ -132,6 +152,7 @@ class MovementService:
                 performed_by=performed_by,
                 notes=payload.notes,
                 expiry_date=payload.expiry_date,
+                reservation_id=payload.reservation_id,
             )
             self.db.commit()
             self.db.refresh(movement)
@@ -150,6 +171,10 @@ class MovementService:
             )
         transfer_id = uuid.uuid4()
         try:
+            # Lock both stock rows in a fixed order; two opposite transfers would otherwise
+            # each hold one row and wait forever on the other.
+            for warehouse_id in sorted({payload.source_warehouse_id, payload.destination_warehouse_id}, key=str):
+                self.inventory_repo.get_or_create(payload.product_id, warehouse_id, for_update=True)
             out_movement = self._apply_single_movement(
                 product_id=payload.product_id,
                 warehouse_id=payload.source_warehouse_id,
@@ -178,7 +203,7 @@ class MovementService:
             invalidate_cache("dashboard:summary")
 
             publish_event(InventoryTransferred(
-                event_id=uuid_lib.uuid4(),
+                event_id=uuid.uuid4(),
                 occurred_at=datetime.now(timezone.utc),
                 product_id=payload.product_id,
                 source_warehouse_id=payload.source_warehouse_id,
@@ -198,6 +223,33 @@ class MovementService:
 
     def list_all(self, skip: int = 0, limit: int = 100):
         return self.movement_repo.list_all(skip, limit)
+
+    def search_movements(self, query: str, limit: int = 20):
+        return self.movement_repo.search(query, limit)
+
+    def demand_history(
+        self,
+        date_from: date | None,
+        date_to: date | None,
+        bucket: str,
+        product_ids: list[uuid.UUID] | None,
+        warehouse_id: uuid.UUID | None,
+    ) -> list[dict]:
+        today = datetime.now(timezone.utc).date()
+        end = date_to or today
+        start = date_from or end - timedelta(days=DEFAULT_DEMAND_WINDOW_DAYS)
+        if start > end:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="date_from must not be after date_to")
+        if (end - start).days > MAX_DEMAND_WINDOW_DAYS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Date range must not exceed {MAX_DEMAND_WINDOW_DAYS} days",
+            )
+        rows = self.movement_repo.demand_by_bucket(start, end, bucket, product_ids, warehouse_id)
+        return [
+            {"product_id": product_id, "bucket_start": bucket_start, "demand_quantity": quantity, "issue_count": count}
+            for product_id, bucket_start, quantity, count in rows
+        ]
     
     def record_receive(self, product_id, warehouse_id, quantity, unit_cost, reference_id, performed_by, notes=None):
         return self._apply_single_movement(

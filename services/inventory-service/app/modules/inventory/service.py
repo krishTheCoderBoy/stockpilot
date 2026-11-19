@@ -26,3 +26,19 @@ class InventoryService:
 
     def list_all(self, skip: int = 0, limit: int = 50) -> list[Inventory]:
         return self.repo.list_all(skip, limit)
+
+    def list_low_stock(self, limit: int = 50) -> list[dict]:
+        return [
+            {
+                "product_id": product.id,
+                "sku": product.sku,
+                "product_name": product.name,
+                "warehouse_id": warehouse.id,
+                "warehouse_name": warehouse.name,
+                "on_hand_quantity": inventory.on_hand_quantity,
+                "reserved_quantity": inventory.reserved_quantity,
+                "available_quantity": inventory.available_quantity,
+                "reorder_point": product.reorder_point,
+            }
+            for inventory, product, warehouse in self.repo.list_low_stock_rows(limit)
+        ]

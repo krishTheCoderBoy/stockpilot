@@ -1,16 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { Package, Wallet, ShoppingCart, AlertTriangle } from "lucide-react";
+import { Package, Wallet, ShoppingCart, AlertTriangle, TrendingUp, ShieldAlert } from "lucide-react";
 import { AppShell } from "../components/shell/AppShell";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
-import { api } from "../lib/api";
+import { inventoryApi, procurementApi } from "../lib/api";
+import { type PlanningSummary } from "../lib/queries";
 
 interface Summary {
   total_products: number;
   total_inventory_value: string;
-  pending_purchase_orders: number;
+  // null when the procurement service could not be reached
+  pending_purchase_orders: number | null;
   low_stock_items: number;
 }
 
@@ -35,6 +37,8 @@ const MOVEMENT_TONE: Record<string, "flow" | "danger" | "accent"> = {
   TRANSFER_OUT: "danger",
   ADJUSTMENT_INCREASE: "accent",
   ADJUSTMENT_DECREASE: "accent",
+  DAMAGED: "danger",
+  RETURNED: "flow",
 };
 
 function StatCard({ icon: Icon, label, value, tone = "default" }: { icon: React.ElementType; label: string; value: string; tone?: "default" | "danger" }) {
@@ -56,17 +60,26 @@ function StatCard({ icon: Icon, label, value, tone = "default" }: { icon: React.
 export function Dashboard() {
   const { data: summary, isLoading: summaryLoading } = useQuery<Summary>({
     queryKey: ["dashboard-summary"],
-    queryFn: async () => (await api.get("/dashboard/summary")).data,
+    queryFn: async () => (await inventoryApi.get("/dashboard/summary")).data,
+  });
+
+  // Planning lives in procurement-service; if it (or inventory behind it) is down, the two
+  // planning cards show a dash and the rest of the dashboard is unaffected.
+  const { data: planning, isLoading: planningLoading } = useQuery<PlanningSummary>({
+    queryKey: ["planning-summary"],
+    queryFn: async () => (await procurementApi.get("/planning/summary")).data,
+    retry: false,
+    staleTime: 60_000,
   });
 
   const { data: trend, isLoading: trendLoading } = useQuery<TrendPoint[]>({
     queryKey: ["dashboard-trend"],
-    queryFn: async () => (await api.get("/dashboard/inventory-trend")).data,
+    queryFn: async () => (await inventoryApi.get("/dashboard/inventory-trend")).data,
   });
 
   const { data: movements, isLoading: movementsLoading } = useQuery<RecentMovement[]>({
     queryKey: ["dashboard-movements"],
-    queryFn: async () => (await api.get("/dashboard/recent-movements")).data,
+    queryFn: async () => (await inventoryApi.get("/dashboard/recent-movements")).data,
   });
 
   return (
@@ -78,8 +91,28 @@ export function Dashboard() {
           <>
             <StatCard icon={Package} label="Total Products" value={String(summary?.total_products ?? 0)} />
             <StatCard icon={Wallet} label="Inventory Value" value={`₹${Number(summary?.total_inventory_value ?? 0).toLocaleString()}`} />
-            <StatCard icon={ShoppingCart} label="Pending Purchase Orders" value={String(summary?.pending_purchase_orders ?? 0)} />
+            <StatCard icon={ShoppingCart} label="Pending Purchase Orders" value={summary?.pending_purchase_orders == null ? "—" : String(summary.pending_purchase_orders)} />
             <StatCard icon={AlertTriangle} label="Low Stock Items" value={String(summary?.low_stock_items ?? 0)} tone={summary && summary.low_stock_items > 0 ? "danger" : "default"} />
+          </>
+        )}
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {planningLoading ? (
+          Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
+        ) : (
+          <>
+            <StatCard
+              icon={TrendingUp}
+              label="Recommended Purchases"
+              value={planning ? String(planning.recommended_purchases) : "—"}
+            />
+            <StatCard
+              icon={ShieldAlert}
+              label="Stockout Risk"
+              value={planning ? String(planning.stockout_risk) : "—"}
+              tone={planning && planning.stockout_risk > 0 ? "danger" : "default"}
+            />
           </>
         )}
       </div>

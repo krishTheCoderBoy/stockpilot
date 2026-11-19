@@ -8,6 +8,7 @@ from app.modules.warehouses.schemas import WarehouseCreate, WarehouseUpdate
 
 class WarehouseService:
     def __init__(self, db: Session):
+        self.db = db
         self.repo = WarehouseRepository(db)
 
     def create_warehouse(self, payload: WarehouseCreate) -> Warehouse:
@@ -16,8 +17,14 @@ class WarehouseService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Warehouse code already exists",
             )
-        warehouse = Warehouse(**payload.model_dump())
-        return self.repo.create(warehouse)
+        try:
+            warehouse = self.repo.create(Warehouse(**payload.model_dump()))
+            self.db.commit()
+            self.db.refresh(warehouse)
+            return warehouse
+        except Exception:
+            self.db.rollback()
+            raise
 
     def get_warehouse(self, warehouse_id) -> Warehouse:
         warehouse = self.repo.get_by_id(warehouse_id)
@@ -35,7 +42,14 @@ class WarehouseService:
         updates = payload.model_dump(exclude_unset=True)
         for field, value in updates.items():
             setattr(warehouse, field, value)
-        return self.repo.update(warehouse)
+        try:
+            self.repo.update(warehouse)
+            self.db.commit()
+            self.db.refresh(warehouse)
+            return warehouse
+        except Exception:
+            self.db.rollback()
+            raise
 
     def search_warehouses(self, query: str, limit: int = 20) -> list[Warehouse]:
         return self.repo.search(query, limit)

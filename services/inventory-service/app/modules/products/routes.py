@@ -32,6 +32,18 @@ def list_products(
     return service.list_products(skip, limit)
 
 
+# Declared before /{product_id} so "search" is not parsed as a product UUID.
+@router.get("/search", response_model=list[ProductOut])
+def search_products(
+    q: str,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role("ADMIN", "INVENTORY_MANAGER", "PROCUREMENT_MANAGER")),
+):
+    service = ProductService(db)
+    return service.search_products(q, limit)
+
+
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product(
     product_id: uuid.UUID,
@@ -51,13 +63,3 @@ def update_product(
 ):
     service = ProductService(db)
     return service.update_product(product_id, payload)
-
-@router.get("/search", response_model=list[ProductOut])
-def search_products(
-    q: str,
-    limit: int = 20,
-    db: Session = Depends(get_db),
-    current_user=Depends(require_role("ADMIN", "INVENTORY_MANAGER", "PROCUREMENT_MANAGER")),
-):
-    service = ProductService(db)
-    return service.search_products(q, limit)

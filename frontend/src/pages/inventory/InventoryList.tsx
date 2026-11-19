@@ -107,7 +107,7 @@ export function InventoryList() {
               header: "Status",
               accessor: (row) => {
                 const product = productMap.get(row.product_id);
-                const isLow = product && Number(row.on_hand_quantity) <= Number(product.reorder_point);
+                const isLow = product && Number(row.available_quantity) <= Number(product.reorder_point);
                 return isLow ? (
                   <Badge tone="danger">
                     <AlertTriangle size={11} className="mr-1 inline" />

@@ -10,6 +10,7 @@ from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.redis_client import redis_client
 from app.modules.users.routes import router as users_router
 from app.modules.auth.routes import router as auth_router
+from app.modules.users.internal_routes import router as internal_users_router
 
 app = FastAPI(
     title="StockPilot Auth Service",
@@ -30,6 +31,7 @@ app.add_middleware(
 
 app.include_router(users_router)
 app.include_router(auth_router)
+app.include_router(internal_users_router)
 
 
 @app.get("/health")

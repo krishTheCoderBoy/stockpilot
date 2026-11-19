@@ -11,8 +11,7 @@ class OtpRepository:
 
     def create(self, otp: Otp) -> Otp:
         self.db.add(otp)
-        self.db.commit()
-        self.db.refresh(otp)
+        self.db.flush()
         return otp
 
     def get_valid_otp(self, user_id, purpose: OtpPurpose, code: str) -> Otp | None:
@@ -30,7 +29,7 @@ class OtpRepository:
 
     def mark_used(self, otp: Otp) -> None:
         otp.is_used = True
-        self.db.commit()
+        self.db.flush()
 
     def invalidate_existing(self, user_id, purpose: OtpPurpose) -> None:
         self.db.query(Otp).filter(
@@ -38,4 +37,4 @@ class OtpRepository:
             Otp.purpose == purpose,
             Otp.is_used.is_(False),
         ).update({"is_used": True})
-        self.db.commit()
+        self.db.flush()

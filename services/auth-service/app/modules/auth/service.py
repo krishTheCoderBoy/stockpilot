@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
@@ -15,6 +16,8 @@ from app.core.config import settings
 from app.modules.users.models import User, UserRole
 from app.core.queue import email_queue
 from app.jobs.email_jobs import send_email_job
+
+logger = logging.getLogger(__name__)
 
 OTP_VALIDITY_DAYS = 30
 
@@ -103,12 +106,17 @@ class AuthService:
         user = self.repo.get_by_email_or_mobile(identifier)
         if not user:
             return
-        email_queue.enqueue(
-            send_email_job,
-            to_email=user.email,
-            subject="Your StockPilot username",
-            body=f"Your username is: {user.username}",
-        )
+        try:
+            email_queue.enqueue(
+                send_email_job,
+                to_email=user.email,
+                subject="Your StockPilot username",
+                body=f"Your username is: {user.username}",
+            )
+        except Exception:
+            # The response is identical either way (anti-enumeration), so a queue outage
+            # is logged rather than surfaced as a 500.
+            logger.exception("Could not enqueue forgot-username email")
 
     def google_login(self, token: str) -> str:
         try:

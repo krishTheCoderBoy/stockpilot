@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_role
-from app.modules.inventory.schemas import InventoryOut
+from app.modules.inventory.schemas import InventoryOut, LowStockOut
 from app.modules.inventory.service import InventoryService
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
@@ -22,6 +22,16 @@ def list_inventory(
 ):
     service = InventoryService(db)
     return service.list_all(skip, limit)
+
+
+@router.get("/low-stock", response_model=list[LowStockOut])
+def list_low_stock(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role(*ALL_ROLES)),
+):
+    service = InventoryService(db)
+    return service.list_low_stock(limit)
 
 
 @router.get("/product/{product_id}", response_model=list[InventoryOut])

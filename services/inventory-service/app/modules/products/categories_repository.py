@@ -9,12 +9,14 @@ class CategoryRepository:
 
     def create(self, category: ProductCategory) -> ProductCategory:
         self.db.add(category)
-        self.db.commit()
-        self.db.refresh(category)
+        self.db.flush()
         return category
 
     def list_all(self) -> list[ProductCategory]:
         return self.db.query(ProductCategory).all()
+
+    def get_by_name(self, name: str) -> ProductCategory | None:
+        return self.db.query(ProductCategory).filter(ProductCategory.name == name).first()
 
     def get_by_id(self, category_id) -> ProductCategory | None:
         return (

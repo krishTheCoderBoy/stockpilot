@@ -57,6 +57,51 @@ The goal is to build the system incrementally while applying real-world software
                     ┌──────────▼───────────┐
                     │      PostgreSQL      │
                     └──────────────────────┘
+## 💻 Running locally without Docker
+
+Each service is a plain uvicorn app. Copy each service's `.env.example` to `.env` (the same `SECRET_KEY` everywhere; the same `INTERNAL_SERVICE_TOKEN` in auth, inventory and procurement), point `DATABASE_URL` at your own PostgreSQL databases (`auth_db`, `inventory_db`, `procurement_db`), then from each service directory:
+
+```bash
+alembic upgrade head                       # auth-service, inventory-service, procurement-service
+uvicorn main:app --port 8001               # auth-service
+uvicorn app.main:app --port 8002           # inventory-service
+uvicorn app.main:app --port 8003           # procurement-service
+uvicorn app.main:app --port 8004           # chatbot-service
+uvicorn app.main:app --port 8000           # gateway
+```
+
+Background processes (inventory-service directory): `python -m app.consumers.purchase_order_receive_consumer`, `python -m app.consumers.notification_consumer`, `python worker.py`, `python scheduler.py`. Auth's email worker (login codes): `python worker.py` from `auth-service`. Frontend: `cd frontend && npm run dev` (set `VITE_API_GATEWAY_BASE_URL=http://localhost:8000` to route everything through the gateway).
+
+**Forecasting needs history.** Planning is only useful with months of daily `ISSUE` movements. For a development database, `python scripts/seed_demand_history.py --confirm` (inventory-service) backfills about six months; it rewrites on-hand quantities, so never run it against real data.
+
+**The assistant needs a model key.** In `services/chatbot-service/.env` set `GROK_API_KEY` (a Groq `gsk_...` or xAI `xai-...` key, recognised by its prefix) or `ANTHROPIC_API_KEY` for Claude; `LLM_PROVIDER` and `LLM_MODEL` override the choice. Without a key the chat window answers that the assistant is not configured; everything else works. Free tiers cap tokens per minute, so a multi-step question can take a while: the service waits and retries when it is rate limited.
+
+## 🐳 Running with Docker (development)
+
+StockPilot is now a set of services behind a gateway (see [docs/architecture.md](docs/architecture.md)). The compose file starts everything for local development: Postgres (three databases), Redis, RabbitMQ, auth / inventory / procurement services, the inventory event consumers, worker and scheduler, the auth email worker, the gateway and the frontend.
+
+```bash
+cp .env.example .env        # optional: every value has a development default
+docker compose up --build
+```
+
+| What | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| API gateway | http://localhost:8000 |
+| Auth / Inventory / Procurement | http://localhost:8001 / 8002 / 8003 (`/docs` for Swagger) |
+| RabbitMQ management | http://localhost:15672 (guest / guest) |
+
+Notes:
+
+- Each service runs `alembic upgrade head` on start, so databases are migrated automatically. The three databases (`auth_db`, `inventory_db`, `procurement_db`) are created by [docker/postgres/init.sql](docker/postgres/init.sql) on the first start of an empty volume. To start from scratch: `docker compose down -v`.
+- All three services receive the same `SECRET_KEY` (they verify each other's JWTs locally). Inventory and auth also share `INTERNAL_SERVICE_TOKEN`, used for the internal recipients lookup.
+- Source directories are bind-mounted and the Python services run with `--reload`, so edits apply without a rebuild. Rebuild after changing `requirements.txt` or `package.json`.
+- Seed data: `docker compose exec auth-service python scripts/seed.py` (likewise for `inventory-service` and `procurement-service`).
+- Email (OTP codes, notifications) needs `SMTP_USER` / `SMTP_PASSWORD` in `.env`. Without them the stack runs, but sends fail.
+- This setup is for development only. Production images, secrets handling and TLS are Phase 5.
+
+
 🛠️ Tech Stack
 Frontend
 React

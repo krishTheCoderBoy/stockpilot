@@ -1,8 +1,9 @@
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from app.core.security import hash_password
-from app.modules.users.models import User
+from app.modules.users.models import User, UserRole
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import UserCreate
 from app.modules.otp.service import OtpService
@@ -30,7 +31,21 @@ class UserService:
             role=payload.role,
             is_verified=False,
         )
-        user = self.repo.create(user)
+        try:
+            user = self.repo.create(user)
+            self.db.commit()
+        except IntegrityError:
+            # Username and mobile number are unique too; the email pre-check above does
+            # not cover them.
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username or mobile number already registered",
+            )
+        except Exception:
+            self.db.rollback()
+            raise
+        self.db.refresh(user)
 
         otp_service = OtpService(self.db)
         otp_service.generate_and_send(user.id, user.email, OtpPurpose.REGISTRATION)
@@ -60,3 +75,10 @@ class UserService:
         self.db.commit()
         self.db.refresh(user)
         return user
+
+    def list_notification_recipients(self, roles: list[UserRole]) -> list[User]:
+        if not roles:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="At least one role is required"
+            )
+        return self.repo.list_active_by_roles(roles)

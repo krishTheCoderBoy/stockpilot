@@ -23,3 +23,5 @@ class SupplierService:
             self.db.commit(); self.db.refresh(supplier); return supplier
         except Exception:
             self.db.rollback(); raise
+    def search_suppliers(self, query: str, limit: int = 20):
+        return self.repo.search(query, limit)

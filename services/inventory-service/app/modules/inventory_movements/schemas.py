@@ -15,6 +15,8 @@ class MovementCreate(BaseModel):
     unit_cost: Decimal | None = None
     expiry_date: date | None = None
     notes: str | None = None
+    # ISSUE only: consume this reservation instead of competing with other holds.
+    reservation_id: uuid.UUID | None = None
 
 
 class TransferCreate(BaseModel):
@@ -39,3 +41,10 @@ class MovementOut(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DemandBucketOut(BaseModel):
+    product_id: uuid.UUID
+    bucket_start: date
+    demand_quantity: Decimal
+    issue_count: int

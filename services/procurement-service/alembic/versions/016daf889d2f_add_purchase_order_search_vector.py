@@ -1,4 +1,9 @@
-"""add purchase order search vector"""
+"""add purchase order search vector
+
+Idempotent: a fresh database gets the generated column here. A database that already
+has it as a generated column is left alone, and one that has a plain (non-generated)
+search_vector, e.g. from create_all against an older model, is converted.
+"""
 from alembic import op
 import sqlalchemy as sa
 
@@ -6,17 +11,40 @@ revision = '016daf889d2f'
 down_revision = '8e1439173f7e'
 branch_labels = None
 depends_on = None
+
+TABLE = "purchase_orders"
+INDEX = "idx_pos_search_vector"
+# Must stay identical to the purchase order model's search expression once it declares the column.
+EXPRESSION = (
+    "setweight(to_tsvector('english', coalesce(po_number, '')), 'A') || "
+    "setweight(to_tsvector('english', coalesce(notes, '')), 'B')"
+)
+
+
+def _search_vector_generation() -> str | None:
+    """None if the column is missing, 's' if it is a stored generated column, '' if plain."""
+    return op.get_bind().execute(
+        sa.text(
+            "SELECT attgenerated FROM pg_attribute "
+            "WHERE attrelid = to_regclass(:table) AND attname = 'search_vector' AND NOT attisdropped"
+        ),
+        {"table": TABLE},
+    ).scalar()
+
+
 def upgrade():
-    op.execute("""
-        ALTER TABLE purchase_orders
-        ADD COLUMN search_vector tsvector
-        GENERATED ALWAYS AS (
-            setweight(to_tsvector('english', coalesce(po_number, '')), 'A') ||
-            setweight(to_tsvector('english', coalesce(notes, '')), 'B')
-        ) STORED;
-    """)
-    op.execute("CREATE INDEX idx_pos_search_vector ON purchase_orders USING GIN (search_vector);")
+    generation = _search_vector_generation()
+    if generation != "s":
+        if generation is not None:
+            op.execute(f"DROP INDEX IF EXISTS {INDEX};")
+            op.execute(f"ALTER TABLE {TABLE} DROP COLUMN search_vector;")
+        op.execute(
+            f"ALTER TABLE {TABLE} ADD COLUMN search_vector tsvector "
+            f"GENERATED ALWAYS AS ({EXPRESSION}) STORED;"
+        )
+    op.execute(f"CREATE INDEX IF NOT EXISTS {INDEX} ON {TABLE} USING GIN (search_vector);")
+
 
 def downgrade():
-    op.execute("DROP INDEX IF EXISTS idx_pos_search_vector;")
-    op.execute("ALTER TABLE purchase_orders DROP COLUMN IF EXISTS search_vector;")
+    op.execute(f"DROP INDEX IF EXISTS {INDEX};")
+    op.execute(f"ALTER TABLE {TABLE} DROP COLUMN IF EXISTS search_vector;")

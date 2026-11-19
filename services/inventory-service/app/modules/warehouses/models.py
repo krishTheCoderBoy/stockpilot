@@ -1,7 +1,7 @@
 import enum
 import uuid
 
-from sqlalchemy import Column, String, Boolean, Numeric, Enum as SAEnum
+from sqlalchemy import Column, Computed, String, Boolean, Numeric, Index, Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects.postgresql import TSVECTOR
 
@@ -14,8 +14,21 @@ class WarehouseType(str, enum.Enum):
     TRANSIT = "TRANSIT"
 
 
+# Must stay identical to the expression in migration 7d896323cfb5; Postgres owns the
+# value, so SQLAlchemy never writes it.
+WAREHOUSE_SEARCH_EXPRESSION = (
+    "setweight(to_tsvector('english', coalesce(name, '')), 'A') || "
+    "setweight(to_tsvector('english', coalesce(code, '')), 'A') || "
+    "setweight(to_tsvector('english', coalesce(city, '')), 'B') || "
+    "setweight(to_tsvector('english', coalesce(state, '')), 'B')"
+)
+
+
 class Warehouse(Base):
     __tablename__ = "warehouses"
+    __table_args__ = (
+        Index("idx_warehouses_search_vector", "search_vector", postgresql_using="gin"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     code = Column(String, unique=True, nullable=False, index=True)
@@ -30,4 +43,4 @@ class Warehouse(Base):
         SAEnum(WarehouseType, name="warehouse_type"), nullable=False, default=WarehouseType.MAIN
     )
     is_active = Column(Boolean, default=True, nullable=False)
-    search_vector = Column(TSVECTOR, nullable=True)  # populated by DB trigger, never set from app code
+    search_vector = Column(TSVECTOR, Computed(WAREHOUSE_SEARCH_EXPRESSION, persisted=True))

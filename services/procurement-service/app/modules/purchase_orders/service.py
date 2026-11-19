@@ -5,11 +5,22 @@ from sqlalchemy.orm import Session
 from app.modules.purchase_orders.models import PurchaseOrder, PurchaseOrderItem, POStatus
 from app.modules.suppliers.repository import SupplierRepository
 from app.modules.purchase_orders.repository import PurchaseOrderRepository
-from app.modules.purchase_orders.schemas import PurchaseOrderCreate, ReceiveRequest
+from app.modules.purchase_orders.schemas import PurchaseOrderCreate, PurchaseOrderSummary, ReceiveRequest
 from app.core.events.publisher import publish_event
-from app.core.events.schemas import PurchaseOrderCreated, PurchaseOrderApproved, PurchaseOrderReceived, ReceivePurchaseOrderItems
+from app.core.events.schemas import PurchaseOrderCancelled, PurchaseOrderCreated, PurchaseOrderApproved, PurchaseOrderReceived, ReceivePurchaseOrderItems
 from app.core.inventory_client import validate_inventory_resource
-ALLOWED_TRANSITIONS = {POStatus.DRAFT:{POStatus.SUBMITTED}, POStatus.SUBMITTED:{POStatus.APPROVED,POStatus.DRAFT}, POStatus.APPROVED:{POStatus.ORDERED}, POStatus.ORDERED:{POStatus.PARTIALLY_RECEIVED,POStatus.RECEIVED}, POStatus.PARTIALLY_RECEIVED:{POStatus.RECEIVED}, POStatus.RECEIVED:{POStatus.CLOSED}, POStatus.CLOSED:set()}
+ALLOWED_TRANSITIONS: dict[POStatus, set[POStatus]] = {
+    POStatus.DRAFT: {POStatus.SUBMITTED, POStatus.CANCELLED},
+    POStatus.SUBMITTED: {POStatus.APPROVED, POStatus.DRAFT, POStatus.CANCELLED},
+    POStatus.APPROVED: {POStatus.ORDERED, POStatus.CANCELLED},
+    POStatus.ORDERED: {POStatus.PARTIALLY_RECEIVED, POStatus.RECEIVED, POStatus.CANCELLED},
+    # No CANCELLED from here on: once goods have arrived, the order can only be completed.
+    POStatus.PARTIALLY_RECEIVED: {POStatus.RECEIVED},
+    POStatus.RECEIVED: {POStatus.CLOSED},
+    POStatus.CLOSED: set(),
+    POStatus.CANCELLED: set(),
+}
+PENDING_STATUSES = {POStatus.DRAFT, POStatus.SUBMITTED, POStatus.APPROVED, POStatus.ORDERED, POStatus.PARTIALLY_RECEIVED}
 class PurchaseOrderService:
     def __init__(self, db: Session): self.db, self.repo, self.suppliers = db, PurchaseOrderRepository(db), SupplierRepository(db)
     def _get(self, po_id):
@@ -27,7 +38,15 @@ class PurchaseOrderService:
         if not supplier or not supplier.is_active: raise HTTPException(status_code=400, detail="Supplier not found or inactive")
         validate_inventory_resource("warehouses", str(payload.warehouse_id), authorization)
         for item in payload.items: validate_inventory_resource("products", str(item.product_id), authorization)
-        po=PurchaseOrder(po_number=f"PO-{uuid.uuid4().hex[:8].upper()}",supplier_id=payload.supplier_id,warehouse_id=payload.warehouse_id,notes=payload.notes,created_by=created_by,status=POStatus.DRAFT)
+        po = PurchaseOrder(
+            po_number=f"PO-{uuid.uuid4().hex[:8].upper()}",
+            supplier_id=payload.supplier_id,
+            warehouse_id=payload.warehouse_id,
+            notes=payload.notes,
+            expected_date=payload.expected_date,
+            created_by=created_by,
+            status=POStatus.DRAFT,
+        )
         po.items=[PurchaseOrderItem(product_id=i.product_id,ordered_quantity=i.ordered_quantity,unit_price=i.unit_price) for i in payload.items]
         try:
             self.repo.add(po); self.db.commit(); self.db.refresh(po)
@@ -35,7 +54,17 @@ class PurchaseOrderService:
         publish_event(PurchaseOrderCreated(event_id=uuid.uuid4(),occurred_at=datetime.now(timezone.utc),po_id=po.id,po_number=po.po_number,supplier_id=po.supplier_id,warehouse_id=po.warehouse_id))
         return po
     def get_po(self, po_id): return self._get(po_id)
-    def list_pos(self, skip=0, limit=50): return self.repo.list_all(skip,limit)
+    def search_pos(self, query: str, limit: int = 20): return self.repo.search(query, limit)
+    def summary(self) -> PurchaseOrderSummary:
+        return PurchaseOrderSummary(
+            pending_count=self.repo.count_by_status(PENDING_STATUSES),
+            awaiting_approval_count=self.repo.count_by_status({POStatus.SUBMITTED}),
+        )
+    def list_pos(self, skip=0, limit=50, status: POStatus | None = None): return self.repo.list_all(skip,limit,status)
+    def get_po_by_number(self, po_number: str) -> PurchaseOrder:
+        po = self.repo.get_by_number(po_number.strip().upper())
+        if not po: raise HTTPException(status_code=404, detail="Purchase order not found")
+        return po
     def submit(self, po_id):
         po=self._get(po_id); self._transition(po,POStatus.SUBMITTED); return self._save(po)
     def approve(self, po_id, approved_by):
@@ -45,6 +74,22 @@ class PurchaseOrderService:
         po=self._get(po_id); self._transition(po,POStatus.ORDERED); return self._save(po)
     def close(self, po_id):
         po=self._get(po_id); self._transition(po,POStatus.CLOSED); return self._save(po)
+    def cancel(self, po_id: uuid.UUID, cancelled_by: str) -> PurchaseOrder:
+        po = self._get(po_id)
+        # Checked before the transition map so the message says why, not just "illegal".
+        # Status alone would also block this, but received quantity is the real invariant.
+        if any(item.received_quantity > 0 for item in po.items):
+            raise HTTPException(status_code=400, detail="Cannot cancel a purchase order that has received items")
+        self._transition(po, POStatus.CANCELLED)
+        self._save(po)
+        publish_event(PurchaseOrderCancelled(
+            event_id=uuid.uuid4(),
+            occurred_at=datetime.now(timezone.utc),
+            po_id=po.id,
+            po_number=po.po_number,
+            cancelled_by=uuid.UUID(cancelled_by),
+        ))
+        return po
     def receive(self, po_id, payload: ReceiveRequest, performed_by):
         po=self._get(po_id)
         if po.status not in {POStatus.ORDERED,POStatus.PARTIALLY_RECEIVED}: raise HTTPException(status_code=400,detail=f"Cannot receive against a PO in status {po.status.value}")

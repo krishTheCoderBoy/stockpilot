@@ -4,13 +4,19 @@ from fastapi.middleware.cors import CORSMiddleware
 import httpx
 from app.config import settings
 app=FastAPI(title="StockPilot API Gateway", docs_url=None, redoc_url=None)
-app.add_middleware(CORSMiddleware,allow_origins=["http://localhost:5173"],allow_credentials=True,allow_methods=["GET","POST","PUT","PATCH","DELETE","OPTIONS"],allow_headers=["Authorization","Content-Type","Accept"])
+app.add_middleware(CORSMiddleware,allow_origins=["http://localhost:5173"],allow_origin_regex=r"^http://(localhost|127\.0\.0\.1):\d+$",allow_credentials=True,allow_methods=["GET","POST","PUT","PATCH","DELETE","OPTIONS"],allow_headers=["Authorization","Content-Type","Accept"])
+# Routing is by first path segment, so search endpoints (/products/search, ...) follow
+# their resource. "internal" is deliberately absent: service-to-service endpoints must
+# never be reachable from the browser through the gateway.
 ROUTES={
     "auth":settings.auth_service_url, "users":settings.auth_service_url, "otp":settings.auth_service_url,
     "products":settings.inventory_service_url, "product-categories":settings.inventory_service_url,
     "warehouses":settings.inventory_service_url, "inventory":settings.inventory_service_url,
     "inventory-movements":settings.inventory_service_url, "inventory-batches":settings.inventory_service_url,
+    "stock-reservations":settings.inventory_service_url,
+    "dashboard":settings.inventory_service_url,
     "suppliers":settings.procurement_service_url, "purchase-orders":settings.procurement_service_url,
+    "planning":settings.procurement_service_url, "chat":settings.chatbot_service_url,
 }
 HOP_BY_HOP={"connection","keep-alive","proxy-authenticate","proxy-authorization","te","trailers","transfer-encoding","upgrade","host","content-length","content-encoding"}
 @app.get("/health")

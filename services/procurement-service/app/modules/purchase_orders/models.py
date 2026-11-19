@@ -2,8 +2,8 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, String, Numeric, DateTime, ForeignKey, Text, Enum as SAEnum
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Computed, String, Numeric, Date, DateTime, ForeignKey, Index, Text, Enum as SAEnum
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -17,10 +17,22 @@ class POStatus(str, enum.Enum):
     PARTIALLY_RECEIVED = "PARTIALLY_RECEIVED"
     RECEIVED = "RECEIVED"
     CLOSED = "CLOSED"
+    CANCELLED = "CANCELLED"
+
+
+# Must stay identical to the expression in migration 016daf889d2f; Postgres owns the
+# value, so SQLAlchemy never writes it.
+PURCHASE_ORDER_SEARCH_EXPRESSION = (
+    "setweight(to_tsvector('english', coalesce(po_number, '')), 'A') || "
+    "setweight(to_tsvector('english', coalesce(notes, '')), 'B')"
+)
 
 
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
+    __table_args__ = (
+        Index("idx_pos_search_vector", "search_vector", postgresql_using="gin"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     po_number = Column(String, unique=True, nullable=False, index=True)
@@ -32,6 +44,8 @@ class PurchaseOrder(Base):
     created_by = Column(UUID(as_uuid=True), nullable=False)
     approved_by = Column(UUID(as_uuid=True), nullable=True)
     notes = Column(Text, nullable=True)
+    expected_date = Column(Date, nullable=True)
+    search_vector = Column(TSVECTOR, Computed(PURCHASE_ORDER_SEARCH_EXPRESSION, persisted=True))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

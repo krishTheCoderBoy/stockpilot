@@ -21,11 +21,25 @@ const TYPE_TONE: Record<string, "flow" | "danger" | "accent"> = {
   TRANSFER_OUT: "danger",
   ADJUSTMENT_INCREASE: "accent",
   ADJUSTMENT_DECREASE: "accent",
+  DAMAGED: "danger",
+  RETURNED: "flow",
 };
+
+const MOVEMENT_TYPE_OPTIONS = [
+  "RECEIVE",
+  "ISSUE",
+  "ADJUSTMENT_INCREASE",
+  "ADJUSTMENT_DECREASE",
+  "TRANSFER_IN",
+  "TRANSFER_OUT",
+  "DAMAGED",
+  "RETURNED",
+] as const;
 
 export function MovementsList() {
   const [isMovementFormOpen, setIsMovementFormOpen] = useState(false);
   const [isTransferFormOpen, setIsTransferFormOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string>("");
   const { role } = useAuth();
   const canWrite = role === "ADMIN" || role === "INVENTORY_MANAGER";
 
@@ -46,6 +60,12 @@ export function MovementsList() {
 
   const productMap = useMemo(() => new Map((products ?? []).map((p) => [p.id, p])), [products]);
   const warehouseMap = useMemo(() => new Map((warehouses ?? []).map((w) => [w.id, w])), [warehouses]);
+
+  // Filtered client-side: the list endpoint is already a bounded, recent-first page.
+  const visibleMovements = useMemo(
+    () => (movements ?? []).filter((m) => !typeFilter || m.movement_type === typeFilter),
+    [movements, typeFilter]
+  );
 
   function closeAndRefresh() {
     setIsMovementFormOpen(false);
@@ -69,10 +89,25 @@ export function MovementsList() {
         )}
       </div>
 
+      <div className="mb-3 flex items-center gap-2">
+        <label htmlFor="movement-type-filter" className="text-sm text-text-muted">Type</label>
+        <select
+          id="movement-type-filter"
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="rounded-sm bg-surface border border-border px-3 py-1.5 text-sm text-text outline-none focus:border-accent"
+        >
+          <option value="">All types</option>
+          {MOVEMENT_TYPE_OPTIONS.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </div>
+
       <Card className="p-0">
         <Table<Movement>
           isLoading={isLoading}
-          data={movements ?? []}
+          data={visibleMovements}
           keyExtractor={(m) => m.id}
           emptyState={
             <EmptyState

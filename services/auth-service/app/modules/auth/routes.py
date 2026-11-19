@@ -64,3 +64,12 @@ def reset_password(request: Request, payload: ResetPasswordRequest, db: Session 
     service = AuthService(db)
     service.reset_password(payload.email, payload.otp_code, payload.new_password)
     return MessageResponse(message="Password reset successful.")
+
+
+@router.post("/forgot-username", response_model=MessageResponse)
+@limiter.limit(_limit("3/minute"))
+def forgot_username(request: Request, payload: ForgotUsernameRequest, db: Session = Depends(get_db)):
+    service = AuthService(db)
+    service.forgot_username(payload.identifier)
+    # Same response whether or not the identifier matched, so accounts can't be enumerated.
+    return MessageResponse(message="If that email or mobile number is registered, your username has been sent.")

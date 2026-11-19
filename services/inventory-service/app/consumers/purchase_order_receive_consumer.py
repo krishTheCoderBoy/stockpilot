@@ -1,43 +1,62 @@
 """Apply receipt events emitted by the procurement service."""
-import json
 import logging
+import uuid
+from decimal import Decimal
+from functools import partial
+
 import pika
+
+from app.consumers.retry import declare_consumer_topology, handle_delivery
+from app.core.cache import invalidate_cache
 from app.core.config import settings
-from app.core.redis_client import redis_client
 from app.core.database import SessionLocal
-from app.core.events.publisher import EXCHANGE_NAME
 from app.modules.inventory_movements.service import MovementService
-logger=logging.getLogger(__name__)
-QUEUE_NAME="inventory.purchase-order-receipts"
-EVENT_NAME="ReceivePurchaseOrderItems"
+
+logger = logging.getLogger(__name__)
+
+QUEUE_NAME = "inventory.purchase-order-receipts"
+EVENT_NAME = "ReceivePurchaseOrderItems"
+
+
 def process_event(event: dict) -> None:
-    event_id=str(event["event_id"]); key=f"processed_event:{event_id}"
+    db = SessionLocal()
     try:
-        if redis_client.get(key): return
-    except Exception:
-        # Continue during Redis outages; RabbitMQ remains the delivery mechanism.
-        logger.exception("Receipt deduplication cache unavailable")
-    db=SessionLocal()
-    try:
-        movements=MovementService(db)
+        movements = MovementService(db)
         for item in event["items"]:
-            movements.record_receive(product_id=item["product_id"],warehouse_id=event["warehouse_id"],quantity=item["quantity"],unit_cost=item["unit_cost"],reference_id=event["po_id"],performed_by=event["performed_by"],notes=f"Receipt against {event['po_number']}")
+            # The event is JSON, so quantities and IDs arrive as strings; the movement
+            # service compares and does arithmetic on them, so restore the real types.
+            movements.record_receive(
+                product_id=uuid.UUID(item["product_id"]),
+                warehouse_id=uuid.UUID(event["warehouse_id"]),
+                quantity=Decimal(item["quantity"]),
+                unit_cost=Decimal(item["unit_cost"]) if item.get("unit_cost") is not None else None,
+                reference_id=uuid.UUID(event["po_id"]),
+                performed_by=uuid.UUID(event["performed_by"]),
+                notes=f"Receipt against {event['po_number']}",
+            )
+        # One commit for every line, so a partial failure never leaves half a receipt applied.
         db.commit()
-        try: redis_client.set(key,"1",ex=86400)
-        except Exception: logger.exception("Could not record receipt deduplication key")
+        invalidate_cache("dashboard:summary")
     except Exception:
-        db.rollback(); raise
-    finally: db.close()
-def on_message(channel,method,properties,body):
-    try:
-        process_event(json.loads(body)); channel.basic_ack(delivery_tag=method.delivery_tag)
-    except Exception:
-        logger.exception("Could not apply procurement receipt event")
-        channel.basic_nack(delivery_tag=method.delivery_tag,requeue=True)
-def start_consumer():
-    connection=pika.BlockingConnection(pika.URLParameters(settings.rabbitmq_url)); channel=connection.channel()
-    channel.exchange_declare(exchange=EXCHANGE_NAME,exchange_type="topic",durable=True)
-    channel.queue_declare(queue=QUEUE_NAME,durable=True); channel.queue_bind(exchange=EXCHANGE_NAME,queue=QUEUE_NAME,routing_key=EVENT_NAME)
-    channel.basic_qos(prefetch_count=1); channel.basic_consume(queue=QUEUE_NAME,on_message_callback=on_message)
-    logger.info("Listening for %s",EVENT_NAME); channel.start_consuming()
-if __name__=="__main__": start_consumer()
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def start_consumer() -> None:
+    connection = pika.BlockingConnection(pika.URLParameters(settings.rabbitmq_url))
+    channel = connection.channel()
+    declare_consumer_topology(channel, QUEUE_NAME, [EVENT_NAME])
+    channel.basic_qos(prefetch_count=1)
+    channel.basic_consume(
+        queue=QUEUE_NAME,
+        on_message_callback=partial(handle_delivery, queue_name=QUEUE_NAME, process=process_event),
+    )
+    logger.info("Listening for %s", EVENT_NAME)
+    channel.start_consuming()
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    start_consumer()

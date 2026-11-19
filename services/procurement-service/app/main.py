@@ -9,13 +9,15 @@ from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.redis_client import redis_client
 from app.modules.suppliers.routes import router as suppliers_router
 from app.modules.purchase_orders.routes import router as purchase_orders_router
+from app.modules.purchase_orders.internal_routes import router as internal_purchase_orders_router
+from app.modules.planning.routes import router as planning_router
 app=FastAPI(title="StockPilot Procurement Service",docs_url="/docs" if settings.environment!="production" else None)
 app.state.limiter=limiter
 app.add_exception_handler(RateLimitExceeded,_rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(CORSMiddleware,allow_origins=["http://localhost:5173"],allow_credentials=True,allow_methods=["GET","POST","PATCH","DELETE"],allow_headers=["Authorization","Content-Type"])
-app.include_router(suppliers_router); app.include_router(purchase_orders_router)
+app.include_router(suppliers_router); app.include_router(purchase_orders_router); app.include_router(internal_purchase_orders_router); app.include_router(planning_router)
 @app.get("/health")
 def health_check():
     try: redis_client.ping(); redis_status="ok"

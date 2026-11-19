@@ -1,9 +1,12 @@
-from fastapi import Depends, HTTPException, status
+import hmac
+
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.modules.users.models import User
@@ -56,3 +59,13 @@ def require_role(*allowed_roles: UserRole) -> Callable:
         return current_user
 
     return role_checker
+
+def require_internal_token(x_internal_token: str | None = Header(default=None)) -> None:
+    """Guards service-to-service endpoints. The gateway never routes /internal, so this
+    token is the only way in; an unset token fails closed rather than open."""
+    expected = settings.internal_service_token
+    if not expected or not x_internal_token or not hmac.compare_digest(x_internal_token, expected):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Internal endpoint",
+        )

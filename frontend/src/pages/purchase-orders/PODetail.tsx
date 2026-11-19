@@ -20,7 +20,11 @@ const STATUS_TONE: Record<string, "neutral" | "accent" | "flow" | "danger"> = {
   PARTIALLY_RECEIVED: "accent",
   RECEIVED: "flow",
   CLOSED: "neutral",
+  CANCELLED: "danger",
 };
+
+// Cancel is only legal before anything has been received; the API enforces it too.
+const CANCELLABLE_STATUSES = ["DRAFT", "SUBMITTED", "APPROVED", "ORDERED"];
 
 export function PODetail() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +33,7 @@ export function PODetail() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [isReceiveOpen, setIsReceiveOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
 
   const canWrite = role === "ADMIN" || role === "PROCUREMENT_MANAGER";
   const canApprove = role === "ADMIN";
@@ -57,11 +62,12 @@ export function PODetail() {
   const supplierMap = new Map((suppliers ?? []).map((s) => [s.id, s.name]));
   const warehouseMap = new Map((warehouses ?? []).map((w) => [w.id, w.name]));
 
-  async function performAction(action: "submit" | "approve" | "mark-ordered" | "close") {
+  async function performAction(action: "submit" | "approve" | "mark-ordered" | "close" | "cancel") {
     setError(null);
     setActionLoading(true);
     try {
       await procurementApi.post(`/purchase-orders/${id}/${action}`);
+      setIsCancelOpen(false);
       refetch();
     } catch (err) {
       setError(extractErrorMessage(err));
@@ -90,6 +96,9 @@ export function PODetail() {
             <h1 className="font-mono text-lg text-text">{po.po_number}</h1>
             <p className="text-sm text-text-muted">
               {supplierMap.get(po.supplier_id)} → {warehouseMap.get(po.warehouse_id)}
+            </p>
+            <p className="text-sm text-text-muted">
+              Expected delivery: <span className="font-mono">{po.expected_date ?? "not set"}</span>
             </p>
           </div>
           <Badge tone={STATUS_TONE[po.status]}>{po.status}</Badge>
@@ -133,6 +142,11 @@ export function PODetail() {
                 Close purchase order
               </Button>
             )}
+            {CANCELLABLE_STATUSES.includes(po.status) && canApprove && (
+              <Button variant="danger" disabled={actionLoading} onClick={() => setIsCancelOpen(true)}>
+                Cancel order
+              </Button>
+            )}
           </div>
         )}
       </Card>
@@ -165,6 +179,20 @@ export function PODetail() {
           </tbody>
         </table>
       </Card>
+
+      <Modal isOpen={isCancelOpen} onClose={() => setIsCancelOpen(false)} title="Cancel purchase order">
+        <p className="mb-4 text-sm text-text-muted">
+          Cancel {po.po_number}? This cannot be undone, and a cancelled order can no longer be received.
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" disabled={actionLoading} onClick={() => setIsCancelOpen(false)}>
+            Keep order
+          </Button>
+          <Button variant="danger" disabled={actionLoading} onClick={() => performAction("cancel")}>
+            {actionLoading ? "Cancelling..." : "Cancel order"}
+          </Button>
+        </div>
+      </Modal>
 
       <Modal isOpen={isReceiveOpen} onClose={() => setIsReceiveOpen(false)} title="Receive items">
         <ReceiveForm

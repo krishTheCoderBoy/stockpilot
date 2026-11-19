@@ -3,7 +3,7 @@ import { AppShell } from "../../components/shell/AppShell";
 import { Card } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
 import { Skeleton } from "../../components/ui/Skeleton";
-import { api } from "../../lib/api";
+import { authApi } from "../../lib/api";
 
 interface Me {
   id: string;
@@ -20,7 +20,7 @@ interface Me {
 export function Profile() {
   const { data: me, isLoading } = useQuery<Me>({
     queryKey: ["me"],
-    queryFn: async () => (await api.get("/users/me")).data,
+    queryFn: async () => (await authApi.get("/users/me")).data,
   });
 
   if (isLoading) {

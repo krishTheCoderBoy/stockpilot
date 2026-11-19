@@ -15,7 +15,7 @@ router = APIRouter(prefix="/warehouses", tags=["warehouses"])
 def create_warehouse(
     payload: WarehouseCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role("admin")),
+    current_user=Depends(require_role("ADMIN")),
 ):
     service = WarehouseService(db)
     return service.create_warehouse(payload)
@@ -27,7 +27,7 @@ def list_warehouses(
     limit: int = 50,
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role("admin", "inventory_manager", "procurement_manager")
+        require_role("ADMIN", "INVENTORY_MANAGER", "PROCUREMENT_MANAGER")
     ),
 ):
     service = WarehouseService(db)
@@ -40,7 +40,7 @@ def search_warehouses(
     limit: int = 20,
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role("admin", "inventory_manager", "procurement_manager")
+        require_role("ADMIN", "INVENTORY_MANAGER", "PROCUREMENT_MANAGER")
     ),
 ):
     service = WarehouseService(db)
@@ -52,7 +52,7 @@ def get_warehouse(
     warehouse_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role("admin", "inventory_manager", "procurement_manager")
+        require_role("ADMIN", "INVENTORY_MANAGER", "PROCUREMENT_MANAGER")
     ),
 ):
     service = WarehouseService(db)
@@ -64,7 +64,7 @@ def update_warehouse(
     warehouse_id: uuid.UUID,
     payload: WarehouseUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role("admin")),
+    current_user=Depends(require_role("ADMIN")),
 ):
     service = WarehouseService(db)
     return service.update_warehouse(warehouse_id, payload)

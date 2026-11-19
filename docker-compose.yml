@@ -1,0 +1,297 @@
+# Development stack. Source is bind-mounted and servers reload on change.
+# Hardening (production images, secrets handling, TLS) is Phase 5 and intentionally absent.
+#
+#   docker compose up --build
+#
+
+x-service-env: &service-env
+  ENVIRONMENT: development
+  # One key for every service: each verifies JWTs locally, so a mismatch makes every
+  # cross-service request fail with 401.
+  SECRET_KEY: ${SECRET_KEY:-change-me-dev-only-shared-secret}
+  ALGORITHM: HS256
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/%2F
+  PYTHONUNBUFFERED: "1"
+  WATCHFILES_FORCE_POLLING: "true"
+
+x-smtp-env: &smtp-env
+  SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@stockpilot.com}
+
+x-infra-ready: &infra-ready
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  rabbitmq:
+    condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-stockpilot_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stockpilot_pass}
+      POSTGRES_DB: postgres
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_UI_PORT:-15672}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
+  auth-service:
+    build:
+      context: ./services
+      dockerfile: auth-service/Dockerfile
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn main:app --host 0.0.0.0 --port 8001 --reload"
+    environment:
+      <<: [*service-env, *smtp-env]
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-stockpilot_user}:${POSTGRES_PASSWORD:-stockpilot_pass}@postgres:5432/auth_db
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-dev-only-internal-token}
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./services/auth-service:/srv/auth-service
+      - ./services/shared:/srv/shared
+    depends_on: *infra-ready
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Registration/login OTP and forgot-username emails are queued in Redis; without this
+  # worker they are enqueued but never sent.
+  auth-worker:
+    build:
+      context: ./services
+      dockerfile: auth-service/Dockerfile
+    command: rq worker emails --url redis://redis:6379/0
+    environment:
+      <<: [*service-env, *smtp-env]
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-stockpilot_user}:${POSTGRES_PASSWORD:-stockpilot_pass}@postgres:5432/auth_db
+    volumes:
+      - ./services/auth-service:/srv/auth-service
+      - ./services/shared:/srv/shared
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  inventory-service:
+    build:
+      context: ./services
+      dockerfile: inventory-service/Dockerfile
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload"
+    environment:
+      <<: [*service-env, *smtp-env]
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-stockpilot_user}:${POSTGRES_PASSWORD:-stockpilot_pass}@postgres:5432/inventory_db
+      AUTH_SERVICE_URL: http://auth-service:8001
+      PROCUREMENT_SERVICE_URL: http://procurement-service:8003
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-dev-only-internal-token}
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./services/inventory-service:/srv/inventory-service
+      - ./services/shared:/srv/shared
+    depends_on: *infra-ready
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Applies stock changes for purchase-order receipts published by procurement.
+  inventory-receipt-consumer:
+    build:
+      context: ./services
+      dockerfile: inventory-service/Dockerfile
+    command: python -m app.consumers.purchase_order_receive_consumer
+    environment:
+      <<: [*service-env, *smtp-env]
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-stockpilot_user}:${POSTGRES_PASSWORD:-stockpilot_pass}@postgres:5432/inventory_db
+    volumes:
+      - ./services/inventory-service:/srv/inventory-service
+      - ./services/shared:/srv/shared
+    # Waits for inventory-service so its migrations have run before the first message lands.
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  inventory-notification-consumer:
+    build:
+      context: ./services
+      dockerfile: inventory-service/Dockerfile
+    command: python -m app.consumers.notification_consumer
+    environment:
+      <<: [*service-env, *smtp-env]
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-stockpilot_user}:${POSTGRES_PASSWORD:-stockpilot_pass}@postgres:5432/inventory_db
+      AUTH_SERVICE_URL: http://auth-service:8001
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-dev-only-internal-token}
+    volumes:
+      - ./services/inventory-service:/srv/inventory-service
+      - ./services/shared:/srv/shared
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Runs the queued jobs (expiry and low-stock / pending-PO notifications).
+  inventory-worker:
+    build:
+      context: ./services
+      dockerfile: inventory-service/Dockerfile
+    command: python worker.py
+    environment:
+      <<: [*service-env, *smtp-env]
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-stockpilot_user}:${POSTGRES_PASSWORD:-stockpilot_pass}@postgres:5432/inventory_db
+      AUTH_SERVICE_URL: http://auth-service:8001
+      PROCUREMENT_SERVICE_URL: http://procurement-service:8003
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-dev-only-internal-token}
+    volumes:
+      - ./services/inventory-service:/srv/inventory-service
+      - ./services/shared:/srv/shared
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Enqueues the recurring jobs when they fall due. Exactly one instance should run.
+  inventory-scheduler:
+    build:
+      context: ./services
+      dockerfile: inventory-service/Dockerfile
+    command: python scheduler.py
+    environment:
+      <<: *service-env
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-stockpilot_user}:${POSTGRES_PASSWORD:-stockpilot_pass}@postgres:5432/inventory_db
+    volumes:
+      - ./services/inventory-service:/srv/inventory-service
+      - ./services/shared:/srv/shared
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  procurement-service:
+    build:
+      context: ./services
+      dockerfile: procurement-service/Dockerfile
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload"
+    environment:
+      <<: *service-env
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-stockpilot_user}:${POSTGRES_PASSWORD:-stockpilot_pass}@postgres:5432/procurement_db
+      INVENTORY_SERVICE_URL: http://inventory-service:8002
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-dev-only-internal-token}
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./services/procurement-service:/srv/procurement-service
+      - ./services/shared:/srv/shared
+    depends_on: *infra-ready
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  gateway:
+    build:
+      context: ./services/gateway
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8001
+      INVENTORY_SERVICE_URL: http://inventory-service:8002
+      PROCUREMENT_SERVICE_URL: http://procurement-service:8003
+      REQUEST_TIMEOUT_SECONDS: "30"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/gateway:/srv/gateway
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+      procurement-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      # Read by the browser, so it must be the host-visible gateway address, not a
+      # container hostname.
+      VITE_API_GATEWAY_BASE_URL: http://localhost:8000
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      # Keeps the image's node_modules instead of the (possibly Windows-built) host copy.
+      - /app/node_modules
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5173').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  pgdata:

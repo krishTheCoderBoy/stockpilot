@@ -19,13 +19,11 @@ class WarehouseRepository:
 
     def create(self, warehouse: Warehouse) -> Warehouse:
         self.db.add(warehouse)
-        self.db.commit()
-        self.db.refresh(warehouse)
+        self.db.flush()
         return warehouse
 
     def update(self, warehouse: Warehouse) -> Warehouse:
-        self.db.commit()
-        self.db.refresh(warehouse)
+        self.db.flush()
         return warehouse
 
     def search(self, query: str, limit: int = 20) -> list[Warehouse]:
